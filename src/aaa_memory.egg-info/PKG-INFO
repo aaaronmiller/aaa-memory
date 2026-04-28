@@ -1,0 +1,25 @@
+Metadata-Version: 2.4
+Name: aaa-memory
+Version: 0.1.0
+Summary: Personal AI Interaction Archive — Multi-tier memory for AI agent sessions
+Author-email: Clawdi <clawdi@example.com>
+License: MIT
+Keywords: memory,ai,retrieval,clawmem,graphiti,memvid
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: openai>=1.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: numpy>=1.24
+Requires-Dist: sentence-transformers>=3.0.0
+Requires-Dist: torch>=2.0
+Requires-Dist: requests>=2.28
+Requires-Dist: rich>=13.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
