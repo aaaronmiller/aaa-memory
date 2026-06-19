@@ -137,3 +137,6 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local inference build artifacts (cloned C++ inference engine for testing)
+local-inference/
