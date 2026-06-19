@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import json
 import kuzu
 from aaa_memory import config
+GRAPH_PATH = config.CACHE / "graphiti_db_data"
 
 # Paths
 VAULT_DIR = config.CACHE
@@ -27,7 +28,8 @@ def get_graph():
     """Initialize and return Kuzu connection."""
     global _conn
     if _conn is None:
-        GRAPH_PATH.mkdir(parents=True, exist_ok=True)
+        # kuzu creates its own directory
+    # kuzu.Database creates its own directory
         db = kuzu.Database(str(GRAPH_PATH))
         _conn = kuzu.Connection(db)
         _create_schema(_conn)
@@ -36,7 +38,7 @@ def get_graph():
 def _create_schema(conn: kuzu.Connection):
     """Define graph schema: Entity nodes + Relation edges."""
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS Entity (
+        CREATE NODE TABLE IF NOT EXISTS Entity (
             id STRING PRIMARY KEY,
             type STRING,
             name STRING,
@@ -47,7 +49,7 @@ def _create_schema(conn: kuzu.Connection):
         )
     """)
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS Relation (
+        CREATE REL TABLE IF NOT EXISTS Relation (
             from_id STRING,
             to_id STRING,
             type STRING,
@@ -159,14 +161,11 @@ def index_wiki_to_graph(limit: Optional[int] = None) -> Dict:
 # ── Search ─────────────────────────────────────────────────────────────────────
 
 def search_relationship(query: str, limit: int = 10) -> List[Dict]:
-    """
-    Graph relationship query.
-
-    1. Find Entities matching query (name/description)
-    2. For each, fetch outgoing relations (neighbors)
-    3. Return entity + neighbor info
-    """
+    """Search entities in the graph by name/description. Returns related entities."""
     conn = get_graph()
+    if conn is None:
+        return stats
+        return []
     try:
         cursor = conn.execute(f"""
             MATCH (e:Entity)
@@ -174,59 +173,28 @@ def search_relationship(query: str, limit: int = 10) -> List[Dict]:
             RETURN e.id, e.name, e.type, e.description, e.source_path
             LIMIT {limit}
         """)
-        rows = cursor.fetchall()
+        rows = []
+        while cursor.has_next():
+            rows.append(cursor.get_next())
         results = []
-        for (ent_id, name, typ, desc, src) in rows:
-            # Fetch outgoing edges
+        for row in rows:
+            ent_id, name, typ, desc, src = row[0], row[1], row[2], row[3], row[4]
             query2 = f"MATCH (e:Entity {{id: '{ent_id}'}})-[r:Relation]->(target) RETURN target.id, target.name, r.type"
             cursor2 = conn.execute(query2)
             neighbors = []
-            for t_id, t_name, r_type in cursor2.fetchall():
+            while cursor2.has_next():
+                rrow = cursor2.get_next()
+                t_id, t_name, r_type = rrow[0], rrow[1], rrow[2]
                 neighbors.append({'id': t_id, 'name': t_name, 'relation': r_type})
             results.append({
                 'entity_id': ent_id,
                 'name': name,
                 'type': typ,
-                'description': desc[:200],
-                'source': src,
-                'related_entities': neighbors
+                'description': desc,
+                'source_path': src,
+                'neighbors': neighbors[:5],
             })
         return results
     except Exception as e:
-        print(f"[warm] search error: {e}")
+        print(f"[warm] search error: {e}", flush=True)
         return []
-
-def get_graph_statistics() -> Dict:
-    """Return counts of entities and relations."""
-    conn = get_graph()
-    try:
-        cur = conn.execute("MATCH (e:Entity) RETURN count(e)")
-        entities = cur.fetchone()[0]
-        cur = conn.execute("MATCH ()-[r:Relation]->() RETURN count(r)")
-        relations = cur.fetchone()[0]
-        return {'entities': entities, 'relations': relations}
-    except Exception:
-        return {'entities': 0, 'relations': 0}
-
-# ── CLI ────────────────────────────────────────────────────────────────────────
-
-if __name__ == '__main__':
-    import sys
-    if len(sys.argv) < 2:
-        print("Usage: python -m aaa_memory.retrieval.warm [index|search <query>|stats]")
-        sys.exit(1)
-
-    cmd = sys.argv[1]
-    if cmd == 'index':
-        lim = int(sys.argv[2]) if len(sys.argv) > 2 else None
-        print("Indexing wiki pages into Kuzu graph...")
-        stats = index_wiki_to_graph(limit=lim)
-        print(json.dumps(stats, indent=2))
-    elif cmd == 'search':
-        q = sys.argv[2] if len(sys.argv) > 2 else "token"
-        results = search_relationship(q, limit=5)
-        print(json.dumps(results, indent=2))
-    elif cmd == 'stats':
-        print(json.dumps(get_graph_statistics(), indent=2))
-    else:
-        print(f"Unknown command: {cmd}")

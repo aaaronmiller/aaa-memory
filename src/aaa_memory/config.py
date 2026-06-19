@@ -57,3 +57,13 @@ def validate():
         for issue in issues:
             log.warning(issue)
     return len(issues) == 0
+
+# ── Lazy getters (for testing with env var overrides) ─────────────────────────
+def get_vault():
+    return Path(os.getenv("AAA_MEMORY_VAULT", str(CACHE / "vault.sqlite")))
+
+def get_cold_vault():
+    return Path(os.getenv("AAA_MEMORY_COLD_VAULT", str(CACHE / "cold.sqlite")))
+
+def get_wiki():
+    return Path(os.getenv("AAA_MEMORY_WIKI", str(HOME / "knowledge/wiki")))

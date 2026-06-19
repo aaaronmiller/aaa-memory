@@ -15,9 +15,10 @@ import os
 import sys
 from typing import List, Dict, Optional
 
+from aaa_memory import config
 from aaa_memory.retrieval.pipeline import search as memory_search
 from aaa_memory.audit.timeline import assemble_timeline
-from aaa_memory.retrieval.hot import VAULT as config.VAULT
+
 
 
 def handle_search(query: str, limit: int = 20) -> List[Dict]:
