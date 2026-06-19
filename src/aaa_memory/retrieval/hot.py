@@ -10,7 +10,7 @@ from typing import List, Dict
 from aaa_memory.models import Turn
 
 VAULT = Path(
-    os.getenv("AAA_MEMORY_VAULT", "/home/misscheta/.cache/aaa-memory/vault.sqlite")
+    os.getenv("AAA_MEMORY_VAULT", os.getenv("HOME") + "/.cache/aaa-memory/vault.sqlite")
 )
 TOP_K = 20
 

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 COLD_VAULT = Path(
-    os.getenv("AAA_MEMORY_COLD_VAULT", "/home/misscheta/.cache/aaa-memory/cold.sqlite")
+    os.getenv("AAA_MEMORY_COLD_VAULT", os.path.expanduser("~/.cache/aaa-memory/cold.sqlite"))
 )
 TOP_K = 10
 

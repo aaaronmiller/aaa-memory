@@ -38,16 +38,24 @@ def summarize_session(session_id: str) -> Dict:
     }
 
 def summarize_all_sessions(limit: int = 20) -> List[Dict]:
-    """Summarize all recent sessions."""
+    """Summarize all recent sessions. Returns list of session summaries."""
     if not VAULT.exists():
         return []
     conn = sqlite3.connect(str(VAULT))
     cur = conn.cursor()
     try:
-        cur.execute("SELECT DISTINCT session_id FROM turns ORDER BY MAX(created_at) DESC LIMIT ?", (limit,))
+        cur.execute("SELECT DISTINCT session_id FROM turns ORDER BY created_at DESC LIMIT ?", (limit,))
         session_ids = [r[0] for r in cur.fetchall()]
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as e:
         conn.close()
-        return []
+        return [{"error": str(e)}]
+    except Exception as e:
+        conn.close()
+        return [{"error": str(e)}]
     conn.close()
-    return [summarize_session(sid) for sid in session_ids]
+    summaries = []
+    for sid in session_ids:
+        s = summarize_session(sid)
+        if s and "error" not in s:
+            summaries.append(s)
+    return summaries

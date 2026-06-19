@@ -14,7 +14,7 @@ from pathlib import Path
 from collections import defaultdict
 from typing import List, Dict, Tuple
 
-WIKI_BASE = Path("/home/misscheta/knowledge/wiki")
+WIKI_BASE = Path.home() / "knowledge/wiki"
 
 
 def find_all_pages() -> Dict[str, Path]:
@@ -99,7 +99,7 @@ def run_full_lint() -> Dict[str, any]:
 
 def write_report(
     report: Dict[str, any],
-    output: Path = Path("/home/misscheta/knowledge/wiki_lint_report.md"),
+    output: Path = Path.home() / "knowledge/wiki_lint_report.md",
 ):
     """Render lint report as markdown."""
     lines = ["# Wiki Lint Report\n"]

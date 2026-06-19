@@ -1,7 +1,5 @@
-"""
-Timeline assembler — chronological project view linking sessions.
-"""
-
+"""Timeline assembler — chronological project view linking sessions."""
+import os
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,7 +8,7 @@ from aaa_memory.audit.discover import discover_sessions
 from aaa_memory.audit.parser import parse_file
 from aaa_memory.audit.classify import classify_session
 
-PROJECTS_DIR = Path("/home/misscheta/knowledge/projects")
+PROJECTS_DIR = Path(os.getenv("HOME")) / "knowledge/projects"
 
 
 def assemble_timeline(project_id: str, days: int = 7) -> Dict:

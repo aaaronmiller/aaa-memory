@@ -49,7 +49,6 @@ def rrf_fusion(ranked_lists: List[List[Dict]], top_k: int = 50) -> List[Dict]:
     return results
 
 
-# ── Cross-encoder rerank placeholder (T058) ────────────────────────────────────
 
 
 def rerank_top_k(

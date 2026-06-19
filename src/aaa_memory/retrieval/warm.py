@@ -15,9 +15,9 @@ import json
 import kuzu
 
 # Paths
-VAULT_DIR = Path(os.getenv("AAA_MEMORY_VAULT", "/home/misscheta/.cache/aaa-memory"))
+VAULT_DIR = Path(os.getenv("AAA_MEMORY_VAULT", str(Path.home() / ".cache/aaa-memory")))
 GRAPH_DIR = VAULT_DIR / "warm_kuzu"  # Kuzu database directory
-WIKI_BASE = Path("/home/misscheta/knowledge/wiki")
+WIKI_BASE = Path.home() / "knowledge/wiki"
 
 # Global connection (singleton)
 _conn: Optional[kuzu.Connection] = None

@@ -223,3 +223,4 @@ class TestEdgeCases:
         c = combined_classify(Path(f.name), llm_api_key=None, llm_fallback=False)
         assert c is not None
         os.unlink(f.name)
+

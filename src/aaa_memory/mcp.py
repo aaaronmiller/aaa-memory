@@ -27,25 +27,30 @@ def handle_search(query: str, limit: int = 20) -> List[Dict]:
 
 
 def handle_sessions(project_id: Optional[str] = None) -> List[Dict]:
-    """List sessions, optionally filtered by project."""
+    """List sessions, optionally filtered by project. Uses actual vault schema."""
     if not HOT_VAULT.exists():
         return []
     import sqlite3
     conn = sqlite3.connect(str(HOT_VAULT))
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    if project_id:
-        cur.execute(
-            "SELECT DISTINCT session_id, agent, project, MIN(timestamp) as started, COUNT(*) as turns "
-            "FROM turns WHERE project = ? GROUP BY session_id ORDER BY started DESC LIMIT 50",
-            (project_id,),
-        )
-    else:
-        cur.execute(
-            "SELECT DISTINCT session_id, agent, project, MIN(timestamp) as started, COUNT(*) as turns "
-            "FROM turns GROUP BY session_id ORDER BY started DESC LIMIT 50",
-        )
-    results = [dict(row) for row in cur.fetchall()]
+    try:
+        if project_id:
+            cur.execute(
+                "SELECT session_id, agent, MIN(created_at) as first_seen, MAX(created_at) as last_seen, "
+                "COUNT(*) as turns FROM turns WHERE metadata LIKE ? "
+                "GROUP BY session_id ORDER BY last_seen DESC LIMIT 50",
+                (f'%{project_id}%',),
+            )
+        else:
+            cur.execute(
+                "SELECT session_id, agent, MIN(created_at) as first_seen, MAX(created_at) as last_seen, "
+                "COUNT(*) as turns FROM turns "
+                "GROUP BY session_id ORDER BY last_seen DESC LIMIT 50",
+            )
+        results = [dict(row) for row in cur.fetchall()]
+    except sqlite3.OperationalError:
+        results = []
     conn.close()
     return results
 

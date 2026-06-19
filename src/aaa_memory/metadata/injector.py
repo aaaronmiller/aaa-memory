@@ -24,7 +24,7 @@ def inject_metadata(
     project: str = "default",
     agent: str = "unknown",
     session_id: Optional[str] = None,
-    output_dir: Path = Path("/home/misscheta/knowledge/wiki"),
+    output_dir: Path = Path.home() / "knowledge/wiki",
 ) -> Path:
     """
     Write element as markdown file with YAML frontmatter.
@@ -106,7 +106,7 @@ def inject_batch(
     source_file: str,
     project: str = "default",
     agent: str = "unknown",
-    output_dir: Path = Path("/home/misscheta/knowledge/wiki"),
+    output_dir: Path = Path.home() / "knowledge/wiki",
 ) -> list[Path]:
     """Inject multiple elements at once."""
     return [

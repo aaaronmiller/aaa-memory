@@ -11,13 +11,13 @@ import subprocess
 
 # Known session roots per agent
 AGENT_PATHS = {
-    "claude-code": Path("/home/misscheta/.claude/sessions"),
-    "openclaw": Path("/home/misscheta/.openclaw/sessions"),
-    "hermes": Path("/home/misscheta/.hermes/state.db"),  # single SQLite
-    "qwen": Path("/home/misscheta/.qwen/context"),
-    "opencode": Path("/home/misscheta/.opencode/sessions"),
-    "codex": Path("/home/misscheta/.codex/rollouts"),
-    "web": Path("/home/misscheta/knowledge/raw/web"),
+    "claude-code": Path(os.getenv("HOME")) / ".claude/sessions",
+    "openclaw": Path(os.getenv("HOME")) / ".openclaw/sessions",
+    "hermes": Path(os.getenv("HOME")) / ".hermes/state.db",  # single SQLite
+    "qwen": Path(os.getenv("HOME")) / ".qwen/context",
+    "opencode": Path(os.getenv("HOME")) / ".opencode/sessions",
+    "codex": Path(os.getenv("HOME")) / ".codex/rollouts",
+    "web": Path(os.getenv("HOME")) / "knowledge/raw/web",
 }
 
 
