@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from typing import List, Dict
 import subprocess
+from aaa_memory import config
 
 # Known session roots per agent
 AGENT_PATHS = {

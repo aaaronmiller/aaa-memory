@@ -3,6 +3,7 @@ import sqlite3, json, os
 from pathlib import Path
 from typing import List, Dict
 from aaa_memory.audit.extract_decisions import extract_decisions, format_decisions_markdown
+from aaa_memory import config
 
 VAULT = Path(config.VAULT)
 

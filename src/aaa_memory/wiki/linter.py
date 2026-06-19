@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
 from typing import List, Dict, Tuple
+from aaa_memory import config
 
 WIKI_BASE = config.WIKI_BASE
 

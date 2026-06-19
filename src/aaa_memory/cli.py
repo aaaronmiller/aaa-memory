@@ -14,6 +14,7 @@ from aaa_memory.audit.discover import discover_sessions
 from aaa_memory.audit.timeline import assemble_timeline
 from aaa_memory.audit.classify import classify_session
 from aaa_memory.audit.parser import parse_file
+from aaa_memory import config
 
 
 def cmd_sessions(args):

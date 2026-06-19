@@ -19,6 +19,7 @@ from typing import List, Optional
 import re
 
 from ..models import Element
+from aaa_memory import config
 
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]]+)\]\]")
 

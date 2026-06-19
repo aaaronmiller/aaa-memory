@@ -14,6 +14,7 @@ import re
 from typing import Optional
 
 from ..extractor.llm_extractor import Element
+from aaa_memory import config
 
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]]+)\]\]")
 

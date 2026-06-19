@@ -13,6 +13,7 @@ from typing import List, Dict, Optional
 from datetime import datetime, timezone
 import json
 import kuzu
+from aaa_memory import config
 
 # Paths
 VAULT_DIR = config.CACHE

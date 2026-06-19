@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 from typing import List, Dict, Optional
+from aaa_memory import config
 
 COLD_VAULT = Path(
     config.COLD_VAULT
