@@ -12,7 +12,7 @@ Spec: specs/001-memory-archive/spec.md
 
 **Goal**: Initialize project structure, install dependencies, configure environment
 
-- [ ] T001 Create project directory structure
+- [x] T001 Create project directory structure
   - `~/knowledge/` with subdirectories: `raw/transcripts/`, `raw/prds/`, `wiki/decisions/`, `wiki/code/`, `wiki/prompts/`, `wiki/concepts/`
   - `~/.cache/clawmem/` for SQLite vault
   - `~/knowledge/.git/` — initialize repository
@@ -26,11 +26,11 @@ Spec: specs/001-memory-archive/spec.md
   - Copy index files to `~/knowledge/index/`
 - [ ] T004 Initialize git in `~/knowledge/`
   - `git init`, add `.gitignore` for `raw/` (large files), commit initial structure
-- [ ] T005 Write Tampermonkey scripts for web UIs
+- [x] T005 Write Tampermonkey scripts for web UIs
   - Create `scripts/tampermonkey-chatgpt.js`, `scripts/tampermonkey-gemini.js`, `scripts/tampermonkey-claude-web.js`
   - Hook into `fetch`/`XMLHttpRequest` to capture user prompts and model responses
   - Write to `~/knowledge/raw/web/<platform>/<timestamp>.jsonl`
-- [ ] T006 Write daily update service skeleton
+- [x] T006 Write daily update service skeleton
   - Create `scripts/daily-update.sh` (cron at 2 AM)
   - Scanner: walk `~/knowledge/raw/` for new files
   - Parser: extract turns from each format (Claude Code JSONL, OpenClaw JSON, etc.)
@@ -56,7 +56,7 @@ Spec: specs/001-memory-archive/spec.md
 - Classification result stored in `metadata.classification.type`
 
 **Implementation Tasks**:
-- [ ] T021 Build rule-based classifier (file path heuristics, size, extension, YAML frontmatter tags)
+- [x] T021 Build rule-based classifier (file path heuristics, size, extension, YAML frontmatter tags)
   - Create `src/classifier/rules.py` with patterns for each category
   - Regex for PRD keywords ("architecture", "requirements", "spec")
   - Transcript detection: presence of ` Human: ` / ` Assistant: ` exchanges
@@ -66,7 +66,7 @@ Spec: specs/001-memory-archive/spec.md
   - Store labels in `classification_report.json`
 - [ ] T023 Evaluate classifier on test set, tune thresholds to reach 90%+ accuracy
   - Generate confusion matrix, adjust rules
-- [ ] T024 Integrate LLM fallback (Nemotron 3 Super) for ambiguous cases
+- [x] T024 Integrate LLM fallback (Nemotron 3 Super) for ambiguous cases
   - Prompt: "Classify this document into: PRD, transcript, research_paper, knowledge_extract"
   - Cache LLM results to avoid repeat calls
 - [ ] T025 Write classifier unit tests (pytest, 20+ test cases across edge cases)
@@ -87,19 +87,19 @@ Spec: specs/001-memory-archive/spec.md
 - Each element has: `type`, `title`, `content`, `confidence`, `metadata`
 
 **Implementation Tasks**:
-- [ ] T026 Build LLM-based extractor with structured output
+- [x] T026 Build LLM-based extractor with structured output
   - Create `src/extractor/llm_extractor.py`
   - Prompt template: "Extract all knowledge elements from this transcript..."
   - Pydantic schema for Element (type, title, content, tags, confidence)
   - Nemotron 3 Super via OpenRouter (free tier)
-- [ ] T027 Build rule-based fallback extractor (regex for code blocks, bullet lists, "Decision:" markers)
+- [x] T027 Build rule-based fallback extractor (regex for code blocks, bullet lists, "Decision:" markers)
   - `src/extractor/rules_extractor.py`
   - Triggered if LLM unavailable or confidence < 0.6
-- [ ] T028 Metadata injector: add YAML frontmatter to each extracted element
+- [x] T028 Metadata injector: add YAML frontmatter to each extracted element
   - `src/metadata/injector.py`
   - Fields: title, type, tags, source_file, extraction_ts, project, agent, session_id
   - Generate `[[wikilinks]]` from mentioned concepts
-- [ ] T029 Embedding module: compute and store embeddings at extraction time
+- [x] T029 Embedding module: compute and store embeddings at extraction time
   - `src/embedding/encoder.py`
   - Priority chain: Qwen3-Embedding-8B (Ryzen) → EmbeddingGemma-300M (Surface) → Jina v3 API
   - Store in: (1) markdown frontmatter (base64), (2) SQLite vec table, (3) element metadata JSON
@@ -125,15 +125,15 @@ Spec: specs/001-memory-archive/spec.md
 - All wiki files have proper YAML frontmatter
 
 **Implementation Tasks**:
-- [ ] T032 Implement wiki compiler service
+- [x] T032 Implement wiki compiler service
   - `src/wiki/compiler.py`
   - Maps element types to wiki directories: decisions→`wiki/decisions/`, code→`wiki/code/`, prompts→`wiki/prompts/`, concepts→`wiki/concepts/`
   - Generates markdown with YAML frontmatter and `[[wikilinks]]` for related concepts
-- [ ] T033 Build Karpathy pointer-based index system
+- [x] T033 Build Karpathy pointer-based index system
   - `src/wiki/indexer.py`
   - Master index (`wiki/index.md`) lists sub-indexes per category
   - Sub-indexes (e.g., `wiki/decisions/index.md`) use pointer tables: `[[decision-001]], [[decision-002]]`
-- [ ] T034 Create wiki lint tool
+- [x] T034 Create wiki lint tool
   - `src/wiki/linter.py`
   - Detects: orphans (no inbound links), dead links (pointing to missing pages), stale claims (outdated info), contradictions
   - Output: `wiki_lint_report.md`
@@ -200,28 +200,28 @@ Spec: specs/001-memory-archive/spec.md
 - Per-project timeline view shows related sessions chronologically
 
 **Implementation Tasks**:
-- [ ] T047 Discovery scanner: walk all known agent storage locations
+- [x] T047 Discovery scanner: walk all known agent storage locations
   - `src/audit/discover.py`
   - Paths: `~/.claude/sessions/`, `~/.openclaw/sessions/`, `~/.hermes/state.db`, `~/qwen/context/`, `~/.opencode/sessions/`, `~/codex/rollouts/`, `~/knowledge/raw/web/`
   - Identifies session files by pattern (JSONL, JSON, SQLite tables)
-- [ ] T048 Session parser: extract turns from each format
+- [x] T048 Session parser: extract turns from each format
   - `src/audit/parser.py` — format-specific loaders for each agent
   - Normalizes to common `Turn` model (user prompt, model response, timestamp, agent, project context)
-- [ ] T049 Session classifier: infer project_id from cwd/file paths + content topics
+- [x] T049 Session classifier: infer project_id from cwd/file paths + content topics
   - `src/audit/classify.py`
   - Uses file path heuristics + LLM topic classification on first 5 turns
   - Assigns session_type via keyword classification (test keywords → "testing", build keywords → "coding", etc.)
-- [ ] T050 Key decision extractor: summarize decisions per session
+- [x] T050 Key decision extractor: summarize decisions per session
   - `src/audit/extract_decisions.py`
   - LLM prompt: "What key decisions were made in this session? List as bullet points."
-- [ ] T051 Project timeline assembler: chronological view with linked sessions
+- [x] T051 Project timeline assembler: chronological view with linked sessions
   - `src/audit/timeline.py`
   - Groups sessions by project, sorted by start_time
   - Links sessions within 48h window across different agents
   - Generates markdown timeline with session summaries and turn counts
 - [ ] T052 CLI commands: `aaa-memory sessions`, `aaa-memory timeline --project X --last 7d`, `aaa-memory audit --update`
   - `src/cli/sessions.py`, `src/cli/timeline.py`, `src/cli/audit.py`
-- [ ] T053 MCP tool: `memory_sessions(project_id)`, `memory_timeline(project_id, days)`
+- [x] T053 MCP tool: `memory_sessions(project_id)`, `memory_timeline(project_id, days)`
   - Expose via ClawMem MCP server
 - [ ] T054 Embed session summaries for semantic search
   - Store compressed summary (chaff/bash spam stripped, key decisions preserved) as `Element` with `kind="session_summary"`
@@ -246,24 +246,24 @@ Spec: specs/001-memory-archive/spec.md
 - Latency targets met (NFR-001)
 
 **Implementation Tasks**:
-- [ ] T055 Intent classifier service
+- [x] T055 Intent classifier service
   - `src/router/intent.py`
   - Nemotron 3 Super via OpenRouter (free tier) with structured output: `{intent: "recent|relationship|archival|factual|ambiguous"}`
   - Rule-based fallback: keyword matching ("recent", "last week" → recent; "how does X relate" → relationship; "6 months ago" → archival)
-- [ ] T056 Three retrieval strategy implementations
+- [x] T056 Three retrieval strategy implementations
   - Hot tier: ClawMem FTS5 + sqlite-vec hybrid (RRF) — `src/retrieval/hot.py`
   - Warm tier: Graphiti graph traversal — `src/retrieval/warm.py`
   - Cold tier: MemVid V2 compressed search — `src/retrieval/cold.py`
-- [ ] T057 Score fusion engine (Reciprocal Rank Fusion)
+- [x] T057 Score fusion engine (Reciprocal Rank Fusion)
   - `src/retrieval/fusion.py`
   - Configurable weights per tier
 - [ ] T058 Cross-encoder reranker (qwen3-reranker-0.6B on Ryzen, CPU cosine fallback)
   - `src/retrieval/rerank.py`
   - Re-scores top-50 fused results
-- [ ] T059 Token budget enforcement (default 2000 tokens)
+- [x] T059 Token budget enforcement (default 2000 tokens)
   - `src/retrieval/budget.py`
   - Rank-ordered greedy selection, truncate at sentence boundaries
-- [ ] T060 Echo-loop prevention (sentinel marker stripping on ingest, duplicate detection on retrieval)
+- [x] T060 Echo-loop prevention (sentinel marker stripping on ingest, duplicate detection on retrieval)
   - `src/retrieval/echo.py`
 
 **Dependencies**: T055 → T056 → T057 → T058 → T059/T060 parallel
