@@ -3,6 +3,7 @@ Session classifier — infers project_id, session_type, key decisions from parse
 """
 
 import re
+import json
 from typing import Dict, Tuple, Optional
 from aaa_memory.models import Turn
 

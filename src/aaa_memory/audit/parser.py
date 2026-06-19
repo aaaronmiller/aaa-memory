@@ -73,13 +73,35 @@ def parse_web_jsonl(path: Path) -> Iterator[Turn]:
                 continue
 
 
-# Registry
-PARSERS = {
-    ".jsonl": parse_claude_jsonl,  # default — auto-detect by content
-    "claude": parse_claude_jsonl,
-    "openclaw": parse_openclaw_json,
-    "web": parse_web_jsonl,
-}
+def parse_hermes_db(path: Path) -> Iterator[Turn]:
+    """Hermes stores conversation history in a SQLite state.db with 'messages' table."""
+    import sqlite3
+    try:
+        conn = sqlite3.connect(str(path))
+        cur = conn.cursor()
+        # Check if messages table exists
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='messages'")
+        if not cur.fetchone():
+            # No messages table — nothing to parse
+            conn.close()
+            return
+        # Query all messages ordered by id (which reflects conversation order)
+        cur.execute("SELECT id, session_id, role, content, timestamp FROM messages ORDER BY id")
+        for i, (msg_id, session_id, role, content, ts) in enumerate(cur.fetchall()):
+            yield Turn(
+                turn_id=f"hermes:{path.name}:msg_{msg_id}",
+                agent="hermes",
+                session_id=session_id or path.stem,
+                turn_index=i,
+                turn_type=role if role in ('user', 'model', 'system', 'assistant') else 'user',
+                raw_text=content or "",
+                created_at=datetime.fromtimestamp(ts).isoformat() if ts else datetime.now().isoformat(),
+                metadata=json.dumps({"source": "hermes-state-db", "message_id": msg_id}),
+            )
+        conn.close()
+    except Exception as e:
+        print(f"[parser] Hermes parse error: {e}")
+        return
 
 
 def parse_file(path: Path, hint: Optional[str] = None) -> Iterator[Turn]:
@@ -108,6 +130,58 @@ def parse_file(path: Path, hint: Optional[str] = None) -> Iterator[Turn]:
                 yield from parse_openclaw_json(path)
             else:
                 # treat as generic turn list
+                for i, msg in enumerate(data):
+                    yield Turn(
+                        turn_id=f"unknown:{path.name}:{i}",
+                        agent="unknown",
+                        session_id=path.stem,
+                        turn_index=i,
+                        turn_type=msg.get("role", "user"),
+                        raw_text=msg.get("content", ""),
+                        created_at=msg.get("ts", ""),
+                        metadata="{}",
+                    )
+        except Exception:
+            pass
+
+
+# Registry
+PARSERS = {
+    ".jsonl": parse_claude_jsonl,
+    ".json": parse_openclaw_json,
+    "claude": parse_claude_jsonl,
+    "openclaw": parse_openclaw_json,
+    "web": parse_web_jsonl,
+    "hermes": parse_hermes_db,
+}
+
+
+def parse_file(path: Path, hint: Optional[str] = None) -> Iterator[Turn]:
+    """
+    Parse a session file, auto-detecting format.
+
+    hint: 'claude', 'openclaw', 'web', 'hermes' to force parser
+    """
+    if hint:
+        parser = PARSERS.get(hint)
+        if parser:
+            yield from parser(path)
+            return
+
+    # Auto-detect by extension and parent directory
+    parent = path.parent.name
+    if "web" in parent:
+        yield from parse_web_jsonl(path)
+    elif path.suffix == ".db":
+        yield from parse_hermes_db(path)
+    elif path.name.endswith(".jsonl"):
+        yield from parse_claude_jsonl(path)
+    elif path.suffix == ".json":
+        try:
+            data = json.loads(path.read_text())
+            if "turns" in data:
+                yield from parse_openclaw_json(path)
+            else:
                 for i, msg in enumerate(data):
                     yield Turn(
                         turn_id=f"unknown:{path.name}:{i}",

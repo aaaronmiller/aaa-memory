@@ -45,26 +45,52 @@ def main(resume: bool = False):
 
     print(f"Found {total} transcript files; {len(processed)} already processed")
     batch_size = 20
+
+    # Map category → subdir name (same as in vault_route.py)
+    subdir_map = {
+        "prd": "prds",
+        "transcript": "transcripts",
+        "research_paper": "research",
+        "knowledge_extract": "knowledge",
+    }
+
     for i in range(0, total, batch_size):
         batch = transcripts[i : i + batch_size]
         for entry in batch:
             rel = entry["path"]
             if rel in processed:
                 continue
+
+            # Determine new location: raw/<category_subdir>/<filename>
+            category = entry["category"]
+            subdir = subdir_map.get(category)
+            if not subdir:
+                print(f"  ✋ Skipping {rel} (unknown category {category})")
+                continue
+
+            filename = Path(rel).name
+            filepath = RAW_BASE / subdir / filename
+
+            if not filepath.exists():
+                print(f"  ⚠️  Missing: {filepath} (from {rel})")
+                continue
+
             try:
-                filepath = RAW_BASE / rel
-                elements = extract_batch(filepath, use_llm=True)
-                # Inject to wiki
+                elements = extract_batch(
+                    filepath, use_llm=False
+                )  # LLM may fail, use fallback
                 injected = inject_batch(
-                    elements, source_file=rel, project="vault", agent="batch-extractor"
+                    elements,
+                    source_file=str(filepath.relative_to(RAW_BASE)),
+                    project="vault",
+                    agent="batch-extractor",
                 )
-                print(f"  ✓ {rel} → {len(injected)} elements")
+                print(f"  ✓ {filepath.name} → {len(injected)} elements")
                 newly_processed.append(rel)
-                # Flush checkpoint every file
                 processed.add(rel)
                 save_checkpoint(list(processed))
             except Exception as e:
-                print(f"  ✗ {rel}: {e}")
+                print(f"  ✗ {filepath.name}: {e}")
 
         print(
             f"Batch {i // batch_size + 1}/{(total + batch_size - 1) // batch_size} done"
