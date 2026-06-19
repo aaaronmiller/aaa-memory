@@ -32,6 +32,18 @@ def cmd_audit(args):
     parsed = parse_all(sessions)
     print(f"Discovered {len(sessions)} sessions, parsed {len(parsed)}")
 
+def cmd_report(args):
+    '''Generate comprehensive status report.'''
+    from aaa_memory.reporting.transition_report import generate_report
+    print(generate_report())
+
+def cmd_search(args):
+    '''Search across all tiers.'''
+    from aaa_memory.retrieval.pipeline import search
+    results = search(args.query, limit=args.limit or 10)
+    for r in results:
+        print(f"  [{r.get('tier','?')}] {r.get('raw_text','')[:200]}")
+
 def main():
     parser = argparse.ArgumentParser(description="aaa-memory CLI")
     sub = parser.add_subparsers(dest="command")
@@ -45,6 +57,14 @@ def main():
     p_timeline.add_argument("project")
     p_timeline.add_argument("--days", type=int, default=7)
     p_timeline.set_defaults(func=cmd_timeline)
+    
+    p_report = sub.add_parser("report", help="System status report")
+    p_report.set_defaults(func=cmd_report)
+    
+    p_search = sub.add_parser("search", help="Search across all tiers")
+    p_search.add_argument("query")
+    p_search.add_argument("--limit", type=int, default=10)
+    p_search.set_defaults(func=cmd_search)
     
     p_audit = sub.add_parser("audit", help="Run session discovery")
     p_audit.set_defaults(func=cmd_audit)

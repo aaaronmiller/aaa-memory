@@ -18,7 +18,7 @@ from aaa_memory.retrieval.warm import search_relationship as warm_search
 from aaa_memory.retrieval.cold import search_archive as cold_search
 from aaa_memory.retrieval.fusion import rrf_fusion, enforce_token_budget, detect_echo
 
-TOP_K = 20
+from aaa_memory.config import TOP_K
 
 def search(query: str, limit: int = TOP_K, intent: Optional[Intent] = None, source_turn_id: Optional[str] = None) -> List[Dict]:
     """

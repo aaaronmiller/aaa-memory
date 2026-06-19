@@ -17,7 +17,7 @@ from typing import List, Dict, Optional
 
 from aaa_memory.retrieval.pipeline import search as memory_search
 from aaa_memory.audit.timeline import assemble_timeline
-from aaa_memory.retrieval.hot import VAULT as HOT_VAULT
+from aaa_memory.retrieval.hot import VAULT as config.VAULT
 
 
 def handle_search(query: str, limit: int = 20) -> List[Dict]:
@@ -28,10 +28,10 @@ def handle_search(query: str, limit: int = 20) -> List[Dict]:
 
 def handle_sessions(project_id: Optional[str] = None) -> List[Dict]:
     """List sessions, optionally filtered by project. Uses actual vault schema."""
-    if not HOT_VAULT.exists():
+    if not config.VAULT.exists():
         return []
     import sqlite3
-    conn = sqlite3.connect(str(HOT_VAULT))
+    conn = sqlite3.connect(str(config.VAULT))
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     try:
@@ -66,8 +66,8 @@ def handle_store(agent: str, turn_data: str, session_id: Optional[str] = None) -
     import uuid
     from datetime import datetime
 
-    HOT_VAULT.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(HOT_VAULT))
+    config.VAULT.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(config.VAULT))
     conn.execute("""
         CREATE TABLE IF NOT EXISTS turns (
             turn_id TEXT PRIMARY KEY,

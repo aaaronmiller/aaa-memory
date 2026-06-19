@@ -22,7 +22,7 @@ from ..models import Element
 
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]]+)\]\]")
 
-WIKI_BASE = Path.home() / "knowledge/wiki"
+WIKI_BASE = config.WIKI_BASE
 
 # Type → directory mapping
 TYPE_DIR = {

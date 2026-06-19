@@ -11,13 +11,13 @@ import subprocess
 
 # Known session roots per agent
 AGENT_PATHS = {
-    "claude-code": Path(os.getenv("HOME")) / ".claude/sessions",
-    "openclaw": Path(os.getenv("HOME")) / ".openclaw/sessions",
-    "hermes": Path(os.getenv("HOME")) / ".hermes/state.db",  # single SQLite
-    "qwen": Path(os.getenv("HOME")) / ".qwen/context",
-    "opencode": Path(os.getenv("HOME")) / ".opencode/sessions",
-    "codex": Path(os.getenv("HOME")) / ".codex/rollouts",
-    "web": Path(os.getenv("HOME")) / "knowledge/raw/web",
+    "claude-code": config.AGENT_PATHS["claude-code"],
+    "openclaw": config.AGENT_PATHS["openclaw"],
+    "hermes": config.AGENT_PATHS["hermes"],  # single SQLite
+    "qwen": config.AGENT_PATHS["qwen"],
+    "opencode": config.AGENT_PATHS["opencode"],
+    "codex": config.AGENT_PATHS["codex"],
+    "web": config.AGENT_PATHS["web"],
 }
 
 

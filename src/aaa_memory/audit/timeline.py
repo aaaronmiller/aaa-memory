@@ -8,7 +8,7 @@ from aaa_memory.audit.discover import discover_sessions
 from aaa_memory.audit.parser import parse_file
 from aaa_memory.audit.classify import classify_session
 
-PROJECTS_DIR = Path(os.getenv("HOME")) / "knowledge/projects"
+PROJECTS_DIR = config.PROJECTS_DIR
 
 
 def assemble_timeline(project_id: str, days: int = 7) -> Dict:

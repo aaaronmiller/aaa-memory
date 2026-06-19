@@ -49,7 +49,7 @@ def cmd_audit(args):
     print(f"Discovered {total} session files across {len(sessions)} agents")
 
     # 2. Classify all sessions → write cache
-    cache_path = Path(os.getenv("HOME")) / "knowledge/.session_cache.json"
+    cache_path = config.CACHE_FILE
     cache = {}
     for agent, files in sessions.items():
         for f in files:

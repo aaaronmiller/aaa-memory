@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict
 from aaa_memory.audit.extract_decisions import extract_decisions, format_decisions_markdown
 
-VAULT = Path(os.getenv("AAA_MEMORY_VAULT", Path.home() / ".cache/aaa-memory/vault.sqlite"))
+VAULT = Path(config.VAULT)
 
 def summarize_session(session_id: str) -> Dict:
     """Create a compressed session summary with key decisions."""
