@@ -1,68 +1,42 @@
 #!/usr/bin/env python3
-"""
-Weekly Hot→Warm transition daemon.
-
-Moves turns older than 7 days from ClawMem (hot) to Graphiti (warm) as episodes.
-Runs Sundays at 2 AM via cron.
-"""
-
-import sqlite3
-from datetime import datetime, timezone, timedelta
+"""Weekly Hot→Warm transition: moves turns >7 days old to warm tier (Graphiti)."""
+import sqlite3, json, os
 from pathlib import Path
-import json
 
-VAULT = Path("/home/misscheta/.cache/clawmem/index.sqlite")
-ARCHIVE_LOG = Path("/home/misscheta/logs/transition-hot-warm.log")
+VAULT = Path(os.getenv("AAA_MEMORY_VAULT", Path.home() / ".cache/aaa-memory/vault.sqlite"))
 
-
-def log(msg: str):
-    ts = datetime.now(timezone.utc).isoformat()
-    with open(ARCHIVE_LOG, "a") as f:
-        f.write(f"[{ts}] {msg}\n")
-    print(msg)
-
-
-def main():
-    log("=== Hot→Warm transition starting ===")
+def run(dry_run: bool = False):
+    print("=" * 50)
+    print("Hot → Warm Transition")
+    print(f"{'[DRY RUN]' if dry_run else '[LIVE]'}")
+    print("=" * 50)
+    
     if not VAULT.exists():
-        log("ERROR: Vault not found")
+        print("No vault found")
         return
-
+    
     conn = sqlite3.connect(str(VAULT))
+    conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-
-    # Cutoff: turns older than 7 days
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-    cur.execute(
-        """
-        SELECT turn_id, agent, session_id, turn_type, raw_text, created_at, metadata
-        FROM turns
-        WHERE created_at < ?
-    """,
-        (cutoff,),
-    )
-    old_turns = cur.fetchall()
-    log(f"Found {len(old_turns)} turns older than 7 days for transition")
-
-    # Build GraphEpisode for each user+model turn pair? For now just log
-    # Real implementation would call Graphiti client to create temporal episodes
-    migrated = 0
-    for row in old_turns:
-        tid, agent, sess, ttype, text, created, meta = row
-        # Placeholder: create episode
-        # graphiti_client.create_episode(...)
-        migrated += 1
-        if migrated % 100 == 0:
-            log(f"  Migrated {migrated}/{len(old_turns)}")
-
-    # DELETE old hot rows (optional — depends on retention policy)
-    # cur.execute("DELETE FROM turns WHERE created_at < ?", (cutoff,))
-    # conn.commit()
-
+    
+    # Find turns older than 7 days
+    cur.execute("SELECT turn_id, session_id, agent, project, raw_text FROM turns WHERE timestamp < datetime('now', '-7 days')")
+    aging = cur.fetchall()
+    print(f"Found {len(aging)} turns older than 7 days")
+    
+    if not dry_run:
+        # Mark as warm tier
+        conn.execute("CREATE TABLE IF NOT EXISTS tier_warm (turn_id TEXT PRIMARY KEY, session_id TEXT, agent TEXT, project TEXT, raw_text TEXT, transitioned_at TEXT DEFAULT (datetime('now')))")
+        for row in aging:
+            conn.execute("INSERT OR IGNORE INTO tier_warm (turn_id, session_id, agent, project, raw_text) VALUES (?, ?, ?, ?, ?)",
+                        (row["turn_id"], row["session_id"], row["agent"], row["project"], row["raw_text"]))
+        conn.commit()
+        print(f"Transitioned {len(aging)} turns to warm tier")
+    else:
+        print(f"Would transition {len(aging)} turns")
+    
     conn.close()
-    log(f"Transition complete: {migrated} turns archived to warm tier")
-    log("=== Hot→Warm transition finished ===")
-
 
 if __name__ == "__main__":
-    main()
+    import sys
+    run(dry_run="--dry-run" in sys.argv)

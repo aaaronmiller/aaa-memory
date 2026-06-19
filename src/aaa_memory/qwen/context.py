@@ -1,36 +1,11 @@
-"""
-Qwen Code integration — context refresh + MCP tool registration.
-"""
-
+"""Qwen Code integration — context file injection + MCP."""
+import os, json
 from pathlib import Path
 
-# Qwen Code reads PROJECT_SUMMARY.md at project root to get context
-SUMMARY_PATH = Path("PROJECT_SUMMARY.md")
+def write_project_summary(project: str, summary: str):
+    path = Path(f"PROJECT_SUMMARY_{project}.md")
+    path.write_text(summary)
 
-
-def refresh_context(project_root: Path, summary: str) -> Path:
-    """
-    Write updated PROJECT_SUMMARY.md for Qwen Code.
-
-    This file is auto-injected into Qwen Code sessions.
-    """
-    p = project_root / SUMMARY_PATH
-    p.write_text(f"# Project Summary\n\n{summary}\n")
-    return p
-
-
-def mcp_tools_available() -> bool:
-    """Check if aaa-memory MCP server is running and reachable."""
-    # Placeholder — real check would attempt stdio connection
-    return True
-
-
-if __name__ == "__main__":
-    import sys
-
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(".")
-    summary = (
-        sys.argv[2] if len(sys.argv) > 2 else "Default project context from aaa-memory"
-    )
-    path = refresh_context(root, summary)
-    print(f"Context written to {path}")
+def read_context(project: str) -> str:
+    path = Path(f"PROJECT_SUMMARY_{project}.md")
+    return path.read_text() if path.exists() else ""
