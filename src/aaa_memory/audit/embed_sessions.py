@@ -13,24 +13,41 @@ def summarize_session(session_id: str) -> Dict:
     conn = sqlite3.connect(str(VAULT))
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute("SELECT turn_id, agent, raw_text FROM turns WHERE session_id = ? ORDER BY timestamp", (session_id,))
-    rows = cur.fetchall()
+    try:
+        cur.execute("SELECT id, turn_id, agent, raw_text, created_at FROM turns WHERE session_id = ? ORDER BY created_at", (session_id,))
+        rows = cur.fetchall()
+    except sqlite3.OperationalError as e:
+        conn.close()
+        return {"error": str(e)}
     conn.close()
     if not rows:
-        return {}
+        return {"session_id": session_id, "turns": 0}
     
-    # Concatenate transcript, strip bash noise
     transcript = "\n".join(r["raw_text"] for r in rows if r["raw_text"])
-    
-    # Extract decisions
     decisions = extract_decisions(transcript, [r["turn_id"] for r in rows])
     
-    summary = {
+    return {
         "session_id": session_id,
         "agent": rows[0]["agent"] if rows else "?",
         "turns": len(rows),
+        "first_seen": str(rows[0]["created_at"]) if rows[0]["created_at"] else "?",
+        "last_seen": str(rows[-1]["created_at"]) if rows[-1]["created_at"] else "?",
         "decision_count": len(decisions),
         "top_decisions": [d.title for d in decisions[:5]],
         "summary_md": format_decisions_markdown(decisions),
     }
-    return summary
+
+def summarize_all_sessions(limit: int = 20) -> List[Dict]:
+    """Summarize all recent sessions."""
+    if not VAULT.exists():
+        return []
+    conn = sqlite3.connect(str(VAULT))
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT DISTINCT session_id FROM turns ORDER BY MAX(created_at) DESC LIMIT ?", (limit,))
+        session_ids = [r[0] for r in cur.fetchall()]
+    except sqlite3.OperationalError:
+        conn.close()
+        return []
+    conn.close()
+    return [summarize_session(sid) for sid in session_ids]

@@ -1,0 +1,7 @@
+[Unit]
+Description=Weekly aaa-memory hot→warm tier transition
+[Timer]
+OnCalendar=Sun 02:00
+Persistent=true
+[Install]
+WantedBy=timers.target

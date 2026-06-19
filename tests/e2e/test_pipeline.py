@@ -17,7 +17,7 @@ Assistant: Decision: We'll use PostgreSQL with a users table and a sessions tabl
 """
 
 def test_classifier_rules():
-    from aaa_memory.classifier.rules import classify
+    from aaa_memory.classifier.tuned import classify
     result = classify("test.md", "")
     assert result is not None
 
@@ -40,4 +40,4 @@ def test_cold_storage():
 def test_intent_classifier():
     from aaa_memory.router.intent import classify_intent, Intent
     result = classify_intent("what did we discuss yesterday")
-    assert result.intent in [e.value for e in Intent]
+    assert result in list(Intent)

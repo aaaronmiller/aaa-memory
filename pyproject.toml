@@ -45,3 +45,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+
+
+aaa-memory = "aaa_memory.cli_sessions:main"

@@ -1,0 +1,7 @@
+[Unit]
+Description=Monthly aaa-memory warm→cold tier transition
+[Timer]
+OnCalendar=Mon *-*-1 03:00
+Persistent=true
+[Install]
+WantedBy=timers.target

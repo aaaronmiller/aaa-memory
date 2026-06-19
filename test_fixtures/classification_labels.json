@@ -1,0 +1,502 @@
+[
+  {
+    "file": "test_fixtures/training/prd-01.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-02.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-03.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-04.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-05.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-06.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-07.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-08.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-09.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-10.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-11.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-12.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-13.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-14.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-15.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-16.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-17.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-18.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-19.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-20.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-21.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-22.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-23.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-24.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-25.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-26.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-27.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-28.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-29.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/prd-30.md",
+    "classification": "prd",
+    "category": "prd"
+  },
+  {
+    "file": "test_fixtures/training/transcript-01.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-02.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-03.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-04.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-05.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-06.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-07.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-08.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-09.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-10.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-11.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-12.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-13.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-14.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-15.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-16.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-17.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-18.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-19.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-20.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-21.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-22.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-23.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-24.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-25.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-26.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-27.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-28.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-29.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/transcript-30.md",
+    "classification": "transcript",
+    "category": "transcript"
+  },
+  {
+    "file": "test_fixtures/training/paper-01.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-02.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-03.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-04.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-05.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-06.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-07.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-08.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-09.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-10.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-11.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-12.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-13.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-14.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-15.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-16.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-17.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-18.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-19.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/paper-20.md",
+    "classification": "research_paper",
+    "category": "research_paper"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-01.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-02.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-03.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-04.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-05.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-06.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-07.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-08.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-09.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-10.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-11.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-12.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-13.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-14.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-15.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-16.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-17.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-18.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-19.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/training/knowledge-20.md",
+    "classification": "knowledge_extract",
+    "category": "knowledge_extract"
+  }
+]

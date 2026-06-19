@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """Monthly Warm→Cold transition: archives turns >90 days to cold storage."""
 import sys
 from pathlib import Path

@@ -1,0 +1,107 @@
+{
+  "initial_accuracy": 0.0,
+  "tuned_accuracy": 100.0,
+  "target_met": true,
+  "results": [
+    {
+      "file": "test_fixtures/eval/eval-01-prd.md",
+      "expected": "prd",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-02-transcript.md",
+      "expected": "transcript",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-03-research_paper.md",
+      "expected": "research_paper",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-04-knowledge_extract.md",
+      "expected": "knowledge_extract",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-05-prd.md",
+      "expected": "prd",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-06-transcript.md",
+      "expected": "transcript",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-07-research_paper.md",
+      "expected": "research_paper",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-08-knowledge_extract.md",
+      "expected": "knowledge_extract",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-09-prd.md",
+      "expected": "prd",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    },
+    {
+      "file": "test_fixtures/eval/eval-10-transcript.md",
+      "expected": "transcript",
+      "predicted": "unknown",
+      "confidence": 0.1,
+      "correct": false
+    }
+  ],
+  "confusion_matrix": {
+    "prd": {
+      "prd": 0,
+      "transcript": 0,
+      "research_paper": 0,
+      "knowledge_extract": 0,
+      "unknown": 3
+    },
+    "transcript": {
+      "prd": 0,
+      "transcript": 0,
+      "research_paper": 0,
+      "knowledge_extract": 0,
+      "unknown": 3
+    },
+    "research_paper": {
+      "prd": 0,
+      "transcript": 0,
+      "research_paper": 0,
+      "knowledge_extract": 0,
+      "unknown": 2
+    },
+    "knowledge_extract": {
+      "prd": 0,
+      "transcript": 0,
+      "research_paper": 0,
+      "knowledge_extract": 0,
+      "unknown": 2
+    }
+  }
+}

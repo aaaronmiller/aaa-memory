@@ -1,0 +1,5 @@
+[Unit]
+Description=aaa-memory warm→cold transition
+[Service]
+Type=oneshot
+ExecStart=%h/code/aaa-memory/scripts/transition_warm_cold.py

@@ -61,15 +61,15 @@ Spec: specs/001-memory-archive/spec.md
   - Regex for PRD keywords ("architecture", "requirements", "spec")
   - Transcript detection: presence of ` Human: ` / ` Assistant: ` exchanges
   - Research paper detection: abstract section, citations, references
-- [ ] T022 Create training dataset from 100 labeled vault files
+- [x] T022 Create training dataset from 100 labeled vault files
   - Label `raw/` samples into 4 categories
   - Store labels in `classification_report.json`
-- [ ] T023 Evaluate classifier on test set, tune thresholds to reach 90%+ accuracy
+- [x] T023 Evaluate classifier on test set, tune thresholds to reach 90%+ accuracy
   - Generate confusion matrix, adjust rules
 - [x] T024 Integrate LLM fallback (Nemotron 3 Super) for ambiguous cases
   - Prompt: "Classify this document into: PRD, transcript, research_paper, knowledge_extract"
   - Cache LLM results to avoid repeat calls
-- [ ] T025 Write classifier unit tests (pytest, 20+ test cases across edge cases)
+- [x] T025 Write classifier unit tests (pytest, 20+ test cases across edge cases)
 
 **Dependencies**: T021 → T022 → T023/T024 in parallel → T025  
 **Parallel**: T024 and T023 can run concurrently once rule base stable
@@ -103,10 +103,10 @@ Spec: specs/001-memory-archive/spec.md
   - `src/embedding/encoder.py`
   - Priority chain: Qwen3-Embedding-8B (Ryzen) → EmbeddingGemma-300M (Surface) → Jina v3 API
   - Store in: (1) markdown frontmatter (base64), (2) SQLite vec table, (3) element metadata JSON
-- [ ] T030 Test pipeline on 10 transcripts → manual review extraction quality
+- [x] T030 Test pipeline on 10 transcripts → manual review extraction quality
   - Run `review_extractions.py` interactive approval UI
   - Target: 80%+ useful elements approval rate
-- [ ] T031 Write extraction tests (fixtures with expected elements, CI validation)
+- [x] T031 Write extraction tests (fixtures with expected elements, CI validation)
 
 **Dependencies**: T026 → T027 → T028 → T029 → T030/T031 parallel  
 **Parallel**: T030 (manual review) and T031 (test writing) can start after T029
@@ -219,11 +219,11 @@ Spec: specs/001-memory-archive/spec.md
   - Groups sessions by project, sorted by start_time
   - Links sessions within 48h window across different agents
   - Generates markdown timeline with session summaries and turn counts
-- [ ] T052 CLI commands: `aaa-memory sessions`, `aaa-memory timeline --project X --last 7d`, `aaa-memory audit --update`
+- [x] T052 CLI commands: `aaa-memory sessions`, `aaa-memory timeline --project X --last 7d`, `aaa-memory audit --update`
   - `src/cli/sessions.py`, `src/cli/timeline.py`, `src/cli/audit.py`
 - [x] T053 MCP tool: `memory_sessions(project_id)`, `memory_timeline(project_id, days)`
   - Expose via ClawMem MCP server
-- [ ] T054 Embed session summaries for semantic search
+- [x] T054 Embed session summaries for semantic search
   - Store compressed summary (chaff/bash spam stripped, key decisions preserved) as `Element` with `kind="session_summary"`
 
 **Dependencies**: T047 → T048 → T049/T050 in parallel → T051 → T052/T053/T054
@@ -257,7 +257,7 @@ Spec: specs/001-memory-archive/spec.md
 - [x] T057 Score fusion engine (Reciprocal Rank Fusion)
   - `src/retrieval/fusion.py`
   - Configurable weights per tier
-- [ ] T058 Cross-encoder reranker (qwen3-reranker-0.6B on Ryzen, CPU cosine fallback)
+- [x] T058 Cross-encoder reranker (qwen3-reranker-0.6B on Ryzen, CPU cosine fallback)
   - `src/retrieval/rerank.py`
   - Re-scores top-50 fused results
 - [x] T059 Token budget enforcement (default 2000 tokens)
@@ -304,9 +304,9 @@ Spec: specs/001-memory-archive/spec.md
 **so that** I can search my Claude Code history later
 
 **Implementation Tasks**:
-- [ ] T063 Install ClawMem hooks: `clawmem setup hooks` registers `UserPromptSubmit`, `SessionStart`, `Stop`, `PreCompact` lifecycle listeners
+- [x] T063 Install ClawMem hooks: `clawmem setup hooks` registers `UserPromptSubmit`, `SessionStart`, `Stop`, `PreCompact` lifecycle listeners
   - Hooks write turns to `turns` table in real-time
-- [ ] T064 MCP tool registration: `clawmem setup mcp` exposes 31+ tools (search, storage, context injection)
+- [x] T064 MCP tool registration: `clawmem setup mcp` exposes 31+ tools (search, storage, context injection)
 - [ ] T065 Validate capture: run test session, verify entries appear in `turns` within 60s
 
 **Dependencies**: ClawMem already installed (Phase 1) → T063/T064 → T065
@@ -320,7 +320,7 @@ Spec: specs/001-memory-archive/spec.md
 **so that** Discord/Telegram conversations are automatically archived and searchable
 
 **Implementation Tasks**:
-- [ ] T066 Write OpenClaw ContextEngine plugin
+- [x] T066 Write OpenClaw ContextEngine plugin
   - Plugin: `openclaw-plugin-aaa-memory`
   - Hooks: `before_prompt_build` (inject retrieved context), `afterTurn` (store turn), `compact` (summarize old context)
   - Configure via `openclaw.json` → `plugins: ["aaa-memory"]`
@@ -341,7 +341,7 @@ Spec: specs/001-memory-archive/spec.md
 
 **Implementation Tasks**:
 - [ ] T069 Recommend hermes-lcm plugin (lossless context management) — documentation only
-- [ ] T070 Write Hermes MemoryProvider ABC plugin
+- [x] T070 Write Hermes MemoryProvider ABC plugin
   - Implements `search(query) -> [results]`, `store(turn)`, `health_check()`
   - `src/hermes/provider.py`
 - [ ] T071 Test Hermes → aaa-memory pipeline
@@ -380,24 +380,24 @@ Spec: specs/001-memory-archive/spec.md
 **so that** recent stays fast, old gets compressed
 
 **Implementation Tasks**:
-- [ ] T075 Weekly Hot→Warm transition daemon
+- [x] T075 Weekly Hot→Warm transition daemon
   - `src/transitions/hot_to_warm.py`
   - Cron: `0 2 * * 0` (Sunday 2 AM)
   - Move turns >7 days old from `turns` (hot) to Graphiti episodes (warm)
   - Preserve provenance: keep `source_turn_id` references
-- [ ] T076 Monthly Warm→Cold transition daemon
+- [x] T076 Monthly Warm→Cold transition daemon
   - `src/transitions/warm_to_cold.py`
   - Cron: `0 3 1 * *` (1st of month, 3 AM)
   - Archive Graphiti episodes >90 days to MemVid V2 .mv2 files
   - Delete from warm tier after successful archival
-- [ ] T077 Overnight improvement loop (re-encode low-confidence elements)
+- [x] T077 Overnight improvement loop (re-encode low-confidence elements)
   - `src/overnight/improve.py`
   - Identify elements with confidence < 0.7 OR user correction history
   - Select S-tier reference for content type
   - Rewrite with local LLM (cost-free)
   - Accept if cosine similarity > 0.80 AND meaning preserved (LLM judge)
   - Write improved version with changelog entry
-- [ ] T078 Post-transition reporting: Discord/status channel notification with stats
+- [x] T078 Post-transition reporting: Discord/status channel notification with stats
   - `src/reporting/transition_report.py`
 
 **Dependencies**: T075 → T076 (monthly after weekly stable) → T077 (independent, can run nightly) → T078 (after both)
@@ -411,8 +411,8 @@ Spec: specs/001-memory-archive/spec.md
 **so that** the wiki stays healthy with minimal manual work
 
 **Implementation Tasks**:
-- [ ] T079 Wiki lint runner (already T034) scheduled daily at 3 AM
-- [ ] T080 Auto-fix agent: reads `wiki_lint_report.md`, proposes fixes via Forge plan
+- [x] T079 Wiki lint runner (already T034) scheduled daily at 3 AM
+- [x] T080 Auto-fix agent: reads `wiki_lint_report.md`, proposes fixes via Forge plan
   - `src/wiki/fixer.py` — safe fixes only: add missing wikilinks, update stale claims with LLM (requires approval)
   - Creates GitHub issues for complex fixes
 - [ ] T081 Approval gate: require human confirmation before merge of auto-fixes
@@ -429,11 +429,11 @@ Spec: specs/001-memory-archive/spec.md
   - `tests/e2e/` — pytest with fixtures for each tier
 - [ ] T083 Performance benchmarks (latency targets from NFR-001)
   - `tests/benchmarks/` — measure hot/warm/cold query times, track over time
-- [ ] T084 Structured logging throughout (JSON, 50MB rotation, 5-file retention)
+- [x] T084 Structured logging throughout (JSON, 50MB rotation, 5-file retention)
   - `src/logging/configure.py`
 - [ ] T085 Error handling: dead letter queue for Graphiti failures, graceful degradation for embedding unavailability
-- [ ] T086 Documentation: README.md with setup guide, architecture diagram, troubleshooting
-- [ ] T087 CHANGELOG.md and versioning (semver)
+- [x] T086 Documentation: README.md with setup guide, architecture diagram, troubleshooting
+- [x] T087 CHANGELOG.md and versioning (semver)
 - [ ] T088 Security audit: verify no secret leakage in stored turns, validate Tampermonkey script permissions
 - [ ] T089 Accessibility review: ensure web UI (Phase 7) meets WCAG 2.1 AA (deferred to Phase 7)
 

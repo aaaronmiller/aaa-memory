@@ -1,0 +1,7 @@
+[Unit]
+Description=Nightly aaa-memory improvement loop
+[Timer]
+OnCalendar=Mon..Fri 03:00
+Persistent=true
+[Install]
+WantedBy=timers.target

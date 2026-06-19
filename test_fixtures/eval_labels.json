@@ -1,0 +1,42 @@
+[
+  {
+    "file": "test_fixtures/eval/eval-01-prd.md",
+    "classification": "prd"
+  },
+  {
+    "file": "test_fixtures/eval/eval-02-transcript.md",
+    "classification": "transcript"
+  },
+  {
+    "file": "test_fixtures/eval/eval-03-research_paper.md",
+    "classification": "research_paper"
+  },
+  {
+    "file": "test_fixtures/eval/eval-04-knowledge_extract.md",
+    "classification": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/eval/eval-05-prd.md",
+    "classification": "prd"
+  },
+  {
+    "file": "test_fixtures/eval/eval-06-transcript.md",
+    "classification": "transcript"
+  },
+  {
+    "file": "test_fixtures/eval/eval-07-research_paper.md",
+    "classification": "research_paper"
+  },
+  {
+    "file": "test_fixtures/eval/eval-08-knowledge_extract.md",
+    "classification": "knowledge_extract"
+  },
+  {
+    "file": "test_fixtures/eval/eval-09-prd.md",
+    "classification": "prd"
+  },
+  {
+    "file": "test_fixtures/eval/eval-10-transcript.md",
+    "classification": "transcript"
+  }
+]
