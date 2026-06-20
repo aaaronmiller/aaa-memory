@@ -10,14 +10,15 @@ Orchestrates:
 1. Intent classification (rule-based)
 2. Tier selection
 3. Search across tiers
-4. Score fusion
-5. Result formatting
+4. RRF score fusion
+5. Token budget enforcement
 """
 
 import json
 import sqlite3
 import urllib.request
 import urllib.error
+import re
 from typing import List, Dict, Optional
 from pathlib import Path
 
@@ -27,7 +28,7 @@ CLAWMEM_URL = "http://localhost:7438"
 
 def _clawmem_available() -> bool:
     try:
-        req = urllib.request.Request(f"{CLAWMEM_URL}/health", timeout=2)
+        req = urllib.request.Request(f"{CLAWMEM_URL}/health")
         urllib.request.urlopen(req, timeout=2)
         return True
     except Exception:
@@ -37,21 +38,17 @@ def _clawmem_available() -> bool:
 def _clawmem_search(query: str, limit: int = 5) -> List[Dict]:
     """Search ClawMem via REST API."""
     try:
-        body = json.dumps({"query": query, "limit": limit, "mode": "fts"}).encode()
         req = urllib.request.Request(
-            f"{CLAWMEM_URL}/search", data=body,
-            headers={"Content-Type": "application/json"})
+            f"{CLAWMEM_URL}/documents?pattern={query}&limit={limit}")
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
-            results = data.get("results", [])
-            # Normalize to pipeline format
+            results = data.get("documents", [])
             return [{
                 "turn_id": r.get("docid", ""),
                 "agent": "clawmem",
-                "raw_text": r.get("snippet", r.get("title", "")),
-                "content": r.get("snippet", ""),
+                "raw_text": r.get("body", "")[:300],
                 "title": r.get("title", ""),
-                "score": r.get("score", 0),
+                "score": 0.5,
                 "source": "warm",
             } for r in results]
     except Exception:
@@ -135,37 +132,129 @@ def _wiki_search(query: str, limit: int = 5) -> List[Dict]:
         return []
 
 
-def search(query: str, limit: int = 5, **kwargs) -> List[Dict]:
+def classify_intent(query: str) -> str:
+    """Simple intent classification (rule-based).
+
+    Returns one of: recent, factual, relational, archival, ambiguous
+    """
+    q = query.lower()
+
+    # Recent: time-sensitive queries
+    if any(w in q for w in ["today", "yesterday", "just", "recent", "last", "latest", "now", "current"]):
+        return "recent"
+
+    # Archival: historical queries
+    if any(w in q for w in ["old", "archive", "history", "previously", "before", "2024", "2025"]):
+        return "archival"
+
+    # Relational: asking about connections
+    if any(w in q for w in ["relate", "connect", "link", "between", "compare", "difference"]):
+        return "relational"
+
+    # Factual: specific information
+    if any(w in q for w in ["what is", "how to", "why", "when", "where", "who", "which"]):
+        return "factual"
+
+    return "ambiguous"
+
+
+def rrf_fusion(result_lists: List[List[Dict]], top_k: int = 10, k: int = 60) -> List[Dict]:
+    """Reciprocal Rank Fusion across multiple result lists.
+
+    RRF score = Σ(1 / (k + rank_i)) for each list where the item appears.
+    k is a smoothing constant (default 60).
+    """
+    scores = {}
+    sources = {}
+
+    for results in result_lists:
+        for rank, r in enumerate(results):
+            tid = r.get("turn_id", "")
+            if not tid:
+                continue
+            rrf_score = 1.0 / (k + rank + 1)
+            scores[tid] = scores.get(tid, 0.0) + rrf_score
+            if tid not in sources:
+                sources[tid] = {
+                    "turn_id": tid,
+                    "agent": r.get("agent", "?"),
+                    "raw_text": r.get("raw_text", ""),
+                    "title": r.get("title", ""),
+                    "sources": [],
+                }
+            sources[tid]["sources"].append(r.get("source", "?"))
+
+    # Sort by RRF score
+    sorted_ids = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)
+
+    # Build final results
+    final = []
+    for tid in sorted_ids[:top_k]:
+        item = sources[tid]
+        item["score"] = round(scores[tid], 4)
+        final.append(item)
+
+    return final
+
+
+def enforce_token_budget(results: List[Dict], token_estimates: Dict[str, int], budget: int = 2000) -> List[Dict]:
+    """Enforce token budget on results.
+
+    Greedily includes results until budget is exhausted.
+    """
+    included = []
+    total_tokens = 0
+
+    for r in results:
+        tid = r.get("turn_id", "")
+        tokens = token_estimates.get(tid, len(r.get("raw_text", "")) // 4)
+        if total_tokens + tokens <= budget:
+            included.append(r)
+            total_tokens += tokens
+        else:
+            break
+
+    return included
+
+
+def search(query: str, limit: int = 5, intent: Optional[str] = None, **kwargs) -> List[Dict]:
     """
     Search across all memory tiers.
 
     Returns list of dicts with: turn_id, agent, raw_text, score, source
     """
+    if intent is None:
+        intent = classify_intent(query)
+
     all_results = []
 
     # Hot tier (always available)
-    all_results.extend(_hot_search(query, limit))
+    hot = _hot_search(query, limit * 2)
+    if hot:
+        all_results.append(hot)
 
     # Wiki pages
-    all_results.extend(_wiki_search(query, limit))
+    wiki = _wiki_search(query, limit)
+    if wiki:
+        all_results.append(wiki)
 
     # Warm tier (ClawMem if available)
     if _clawmem_available():
-        all_results.extend(_clawmem_search(query, limit))
+        warm = _clawmem_search(query, limit)
+        if warm:
+            all_results.append(warm)
 
-    # Deduplicate by turn_id
-    seen = set()
-    unique = []
-    for r in all_results:
-        tid = r.get("turn_id", "")
-        if tid not in seen:
-            seen.add(tid)
-            unique.append(r)
+    if not all_results:
+        return []
 
-    # Sort by score
-    unique.sort(key=lambda x: x.get("score", 0), reverse=True)
+    # Fuse results via RRF
+    fused = rrf_fusion(all_results, top_k=limit * 2)
 
-    return unique[:limit]
+    # Token budget enforcement
+    token_estimates = {r["turn_id"]: len(r.get("raw_text", "")) // 4 for r in fused}
+    final = enforce_token_budget(fused, token_estimates, budget=2000)
+
+    return final[:limit]
 
 
 if __name__ == "__main__":

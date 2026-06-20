@@ -8,13 +8,13 @@ Architecture (from wiki-memory specs):
   Cold: MemVid V2 (monthly snapshots) — not yet implemented
 
 The dream agent reads from ClawMem (warm tier), refines content,
-writes wiki pages, and re-indexes ClawMem.
+writes wiki pages with [[wikilinks]], and re-indexes ClawMem.
 
 Phases:
   0. Budget allocation (idle_seconds × 0.25, capped at 7200s)
   1. Extract — read new/updated docs from ClawMem
   2. Refine — confidence scoring (35% consistency, 25% freshness, 25% cross-ref, 15% evidence)
-  3. Compile — write wiki pages with YAML frontmatter
+  3. Compile — write wiki pages with YAML frontmatter + [[wikilinks]]
   4. Pattern Detect — repeated tasks → auto-skill creation
   5. Re-index — trigger ClawMem reindex
   6. Improve — vault quality (structural fixes)
@@ -25,7 +25,6 @@ import sys
 import json
 import time
 import re
-import subprocess
 import urllib.request
 import urllib.error
 from datetime import datetime, date, timezone
@@ -150,20 +149,20 @@ def allocate_budget(idle_seconds: float) -> Budget:
 def extract_from_clawmem(report: DreamReport) -> list[Claim]:
     """Extract documents from ClawMem (warm tier)."""
     claims = []
-    
+
     # List all documents from ClawMem
     docs = clawmem_list_docs(pattern="*", limit=100)
-    
+
     for doc in docs:
         docid = doc.get("docid", "")
         if not docid:
             continue
-        
+
         # Get full document body
         content = doc.get("body", "")
         if not content or len(content.strip()) < 50:
             continue
-        
+
         # Extract entities
         entities = list(set(
             w.strip(",.!?;:\"'()[]{}") for w in content.split()
@@ -171,13 +170,13 @@ def extract_from_clawmem(report: DreamReport) -> list[Claim]:
             and w.strip(",.!?;:\"'()[]{}")[0].isupper()
             and w.strip(",.!?;:\"'()[]{}") not in ("The", "This", "That", "We", "It", "I")
         ))[:10]
-        
+
         # Extract concepts
         tech_keywords = {"python", "typescript", "react", "rust", "docker", "postgres",
                          "redis", "kubernetes", "aws", "api", "cli", "git", "mcp",
                          "sqlite", "llm", "rag", "agent", "vector", "model", "memory"}
         concepts = [kw for kw in tech_keywords if kw in content.lower()]
-        
+
         claims.append(Claim(
             text=content[:2000],
             source_docid=docid,
@@ -186,21 +185,21 @@ def extract_from_clawmem(report: DreamReport) -> list[Claim]:
             entities=entities,
             concepts=concepts,
         ))
-    
+
     report.sources_scanned = len(claims)
     report.sources_processed = len(claims)
     return claims
 
 # ─── Phase 2: Refine ─────────────────────────────────────────────
-def refine_claim(claim: Claim) -> tuple[Claim, bool]:
+def refine_claim(claim: Claim) -> tuple:
     """Score claim confidence (spec F-005)."""
     text = claim.text.lower()
-    
+
     # Self-consistency (35%)
     contradiction_markers = ["however", "but", "on the other hand", "although", "nevertheless"]
     has_contradiction = any(m in text for m in contradiction_markers)
     consistency = 0.6 if has_contradiction else 0.95
-    
+
     # Source freshness (25%) — estimate from filename
     age_days = 90.0
     date_match = re.search(r'(\d{4})-(\d{2})-(\d{2})', claim.source_filename)
@@ -211,7 +210,7 @@ def refine_claim(claim: Claim) -> tuple[Claim, bool]:
         except ValueError:
             pass
     freshness = max(0.0, 1.0 - age_days / 365.0)
-    
+
     # Cross-reference agreement (25%) — check if related wiki pages exist
     agreement = 1.0
     for entity in claim.entities[:3]:
@@ -220,14 +219,14 @@ def refine_claim(claim: Claim) -> tuple[Claim, bool]:
             if (d / f"{slug}.md").exists():
                 agreement = min(agreement, 0.9)
                 break
-    
+
     # Evidence count (15%)
     evidence = min(1.0, len(claim.entities) / 5.0)
-    
+
     # Weighted confidence
     confidence = 0.35 * consistency + 0.25 * freshness + 0.25 * agreement + 0.15 * evidence
     claim.confidence = round(confidence, 3)
-    
+
     # Decision
     if confidence >= CONFIDENCE_AUTO:
         return claim, True
@@ -238,9 +237,16 @@ def refine_claim(claim: Claim) -> tuple[Claim, bool]:
 
 # ─── Phase 3: Compile ────────────────────────────────────────────
 def compile_to_wiki(claims: list[Claim], report: DreamReport):
-    """Write wiki pages from accepted claims."""
+    """Write wiki pages from accepted claims with [[wikilinks]]."""
     today = date.today().isoformat()
-    
+
+    # Build index of existing pages for wikilinks
+    existing_pages = {}
+    for page_dir in [CONCEPTS_DIR, ENTITIES_DIR, SOURCES_DIR, QUERIES_DIR]:
+        if page_dir.exists():
+            for f in page_dir.glob("*.md"):
+                existing_pages[f.stem.lower()] = f.relative_to(AI_WIKI)
+
     for claim in claims:
         # Determine page location
         if claim.concepts:
@@ -252,15 +258,26 @@ def compile_to_wiki(claims: list[Claim], report: DreamReport):
         else:
             target_dir = SOURCES_DIR
             primary = claim.source_filename.split(".")[0]
-        
+
         target_dir.mkdir(parents=True, exist_ok=True)
         slug = re.sub(r'[^a-z0-9]+', '-', primary.lower()).strip('-')[:60]
         page_path = target_dir / f"{slug}.md"
-        
+
+        # Build wikilinks from entities and concepts
+        wikilinks = []
+        for entity in claim.entities[:8]:
+            slug = re.sub(r'[^a-z0-9]+', '-', entity.lower()).strip('-')
+            if slug in existing_pages:
+                wikilinks.append(f"[[{existing_pages[slug].with_suffix('').as_posix()}|{entity}]]")
+        for concept in claim.concepts[:8]:
+            slug = re.sub(r'[^a-z0-9]+', '-', concept.lower()).strip('-')
+            if slug in existing_pages:
+                wikilinks.append(f"[[{existing_pages[slug].with_suffix('').as_posix()}|{concept}]]")
+
         # Build content
         status = "stable" if claim.confidence >= 0.8 else "draft"
         tags = ", ".join(claim.concepts[:5]) if claim.concepts else ""
-        
+
         content = f"""---
 title: "{primary}"
 created: "{today}"
@@ -270,6 +287,11 @@ confidence: {claim.confidence}
 status: {status}
 sources:
   - clawmem://{claim.source_docid}
+wikilinks:
+"""
+        for link in wikilinks:
+            content += f"  - {link}\n"
+        content += f"""
 ---
 
 # {primary}
@@ -278,10 +300,10 @@ sources:
 
 _Source: `{claim.source_filename}` (confidence: {claim.confidence})_
 """
-        
+
         is_new = not page_path.exists()
         page_path.write_text(content)
-        
+
         if is_new:
             report.pages_created += 1
         else:
@@ -294,9 +316,9 @@ def detect_patterns(claims: list[Claim], report: DreamReport):
     if SKILL_PATTERNS_FILE.exists():
         try:
             patterns = json.loads(SKILL_PATTERNS_FILE.read_text())
-        except:
+        except Exception:
             patterns = {"patterns": []}
-    
+
     for claim in claims:
         text = claim.text.lower()
         types = []
@@ -304,7 +326,7 @@ def detect_patterns(claims: list[Claim], report: DreamReport):
         if re.search(r'\b(deploy|release|ship)\b', text): types.append("deployment")
         if re.search(r'\b(test|spec|coverage)\b', text): types.append("testing")
         if re.search(r'\b(debug|bug|error|fix)\b', text): types.append("debugging")
-        
+
         for t in types:
             found = next((p for p in patterns.get("patterns", []) if p["type"] == t), None)
             if found:
@@ -317,15 +339,15 @@ def detect_patterns(claims: list[Claim], report: DreamReport):
                     "last_seen": date.today().isoformat(),
                     "skill_created": False,
                 })
-    
+
     report.patterns_detected = len(patterns.get("patterns", []))
-    
+
     for p in patterns.get("patterns", []):
         if p["count"] >= SKILL_CREATION_THRESHOLD and not p.get("skill_created"):
             _create_skill(p["type"], p["count"])
             p["skill_created"] = True
             report.skills_created += 1
-    
+
     SKILL_PATTERNS_FILE.parent.mkdir(parents=True, exist_ok=True)
     SKILL_PATTERNS_FILE.write_text(json.dumps(patterns, indent=2))
 
@@ -385,36 +407,34 @@ def run_dream_cycle(idle_seconds: float = 600, verbose: bool = True) -> DreamRep
     ALL_DIRS[0].parent.mkdir(parents=True, exist_ok=True)
     for d in ALL_DIRS:
         d.mkdir(parents=True, exist_ok=True)
-    
+
     start = time.time()
     report = DreamReport(timestamp=datetime.now().isoformat())
-    
+
     if verbose:
         print("🌙 Dream agent waking...")
-    
+
     # Phase 0: Budget
     budget = allocate_budget(idle_seconds)
     if verbose:
         print(f"  ⏱ Budget: {budget.total_seconds:.0f}s")
-    
+
     # Phase 1: Extract from ClawMem
     if not clawmem_available():
         if verbose:
             print("  ⚠ ClawMem offline — extracting from raw/ only")
-        # Fallback to raw files
         claims = _extract_from_raw(report)
     else:
         claims = extract_from_clawmem(report)
-        # Also check raw/ for new files
         claims.extend(_extract_from_raw(report))
-    
+
     report.claims_extracted = len(claims)
-    
+
     if not claims:
         if verbose:
             print("  ℹ  No content to process")
         return report
-    
+
     # Phase 2: Refine
     accepted = []
     for claim in claims:
@@ -424,39 +444,39 @@ def run_dream_cycle(idle_seconds: float = 600, verbose: bool = True) -> DreamRep
             report.claims_accepted += 1
         else:
             report.claims_rejected += 1
-    
+
     if verbose:
         print(f"  → {len(accepted)}/{len(claims)} claims accepted")
-    
+
     # Phase 3: Compile
     if accepted:
         compile_to_wiki(accepted, report)
         if verbose:
             print(f"  → {report.pages_created} created, {report.pages_updated} updated")
-    
+
     # Phase 4: Patterns
     detect_patterns(claims, report)
-    
+
     # Phase 5: Re-index ClawMem
     reindex_clawmem(report)
-    
+
     # Phase 6: Improve
     improve_wiki(report)
-    
+
     report.duration = round(time.time() - start, 2)
-    
+
     if verbose:
         print(f"  ✅ Dream cycle complete ({report.duration}s)")
         print(f"     Claims: {report.claims_extracted} → {report.claims_accepted} accepted")
         print(f"     Pages: {report.pages_created} created, {report.pages_updated} updated")
         if report.improvements_made:
             print(f"     Improvements: {report.improvements_made}")
-    
+
     log_action("dream-cycle",
                f"claims={report.claims_extracted}/{report.claims_accepted}, "
                f"pages={report.pages_created}+{report.pages_updated}, "
                f"skills={report.skills_created}")
-    
+
     return report
 
 
@@ -465,16 +485,16 @@ def _extract_from_raw(report: DreamReport) -> list[Claim]:
     claims = []
     if not RAW_DIR.exists():
         return claims
-    
+
     processed = set()
     if INTAKE_LOG_FILE.exists():
         for line in INTAKE_LOG_FILE.read_text().strip().split("\n"):
             if line:
                 try:
                     processed.add(json.loads(line).get("filename", ""))
-                except:
+                except Exception:
                     pass
-    
+
     for f in sorted(RAW_DIR.glob("*")):
         if f.is_file() and f.suffix in (".md", ".txt", ".json", ".jsonl"):
             if f.name not in processed:
@@ -489,7 +509,7 @@ def _extract_from_raw(report: DreamReport) -> list[Claim]:
                     with open(INTAKE_LOG_FILE, "a") as log:
                         log.write(json.dumps({"filename": f.name, "size": len(content),
                                                "timestamp": datetime.now().isoformat()}) + "\n")
-    
+
     report.sources_scanned += len(claims)
     report.sources_processed += len(claims)
     return claims
@@ -502,7 +522,7 @@ if __name__ == "__main__":
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
-    
+
     report = run_dream_cycle(idle_seconds=args.idle, verbose=not args.quiet)
     if args.json:
         print(json.dumps(asdict(report), indent=2))
