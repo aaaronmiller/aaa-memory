@@ -1,8 +1,8 @@
 """
-Cold tier — optional ClawMem integration + local embedding fallback.
+Cold tier — ClawMem integration with FTS5 fallback.
 
-When ClawMem is running, uses its REST API for vector search.
-When ClawMem is unavailable, falls back to local embedding-based search.
+When ClawMem is running, uses its REST API for FTS search.
+When ClawMem is unavailable, falls back to local vault FTS5.
 """
 
 import json
@@ -10,7 +10,7 @@ import sqlite3
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 CLAWMEM_URL = "http://localhost:7438"
 VAULT = Path.home() / ".cache" / "aaa-memory" / "vault.sqlite"
@@ -25,18 +25,16 @@ def clawmem_available() -> bool:
         return False
 
 
-def search_clawmem(query: str, limit: int = 5, collection: str = "wiki") -> List[Dict]:
-    """Search via ClawMem REST API."""
+def search_clawmem(query: str, limit: int = 5) -> List[Dict]:
+    """Search via ClawMem REST API (FTS mode)."""
     try:
-        body = json.dumps({"query": query, "limit": limit, "collection": collection}).encode()
+        body = json.dumps({"query": query, "limit": limit, "mode": "fts"}).encode()
         req = urllib.request.Request(
             f"{CLAWMEM_URL}/search", data=body,
             headers={"Content-Type": "application/json", "Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=10.0) as resp:
-            results = json.loads(resp.read().decode())
-            if isinstance(results, list):
-                return results
-            return results.get("results", [])
+            data = json.loads(resp.read().decode())
+            return data.get("results", [])
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError):
         return []
 
@@ -48,7 +46,6 @@ def search_local(query: str, limit: int = 5) -> List[Dict]:
     try:
         conn = sqlite3.connect(str(VAULT))
         conn.row_factory = sqlite3.Row
-        # Use FTS5 search on wiki_pages
         rows = conn.execute("""
             SELECT title, content, category, path
             FROM wiki_pages
@@ -63,7 +60,7 @@ def search_local(query: str, limit: int = 5) -> List[Dict]:
 
 
 def search(query: str, limit: int = 5) -> List[Dict]:
-    """Search cold tier — ClawMem if available, local FTS5 fallback."""
+    """Search cold tier — ClawMem FTS if available, local FTS5 fallback."""
     if clawmem_available():
         results = search_clawmem(query, limit)
         if results:
