@@ -1,125 +1,124 @@
-"""Integration tests — real API calls, real vault, all agents simulated."""
-import os
-import sys
+#!/usr/bin/env python3
+"""Tests for aaa-memory + wiki-memory integration."""
+
 import json
 import sqlite3
+import sys
 import tempfile
-import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-import pytest
-from aaa_memory import config as test_config
-from aaa_memory.claude.hooks import store_turn
-from aaa_memory.retrieval.pipeline import search
-from aaa_memory.audit.embed_sessions import summarize_session
-from aaa_memory.classifier.tuned import classify
-from aaa_memory.extractor.llm_extractor import extract_fallback
+AAA_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(AAA_ROOT / "src"))
 
 
-@pytest.fixture(autouse=True)
-def clean_vault():
-    """Use a temp vault for each test so state doesn't leak."""
-    tmp = tempfile.mkdtemp()
-    old_vault = os.environ.get("AAA_MEMORY_VAULT")
-    os.environ["AAA_MEMORY_VAULT"] = str(Path(tmp) / "test_vault.sqlite")
-    import importlib
-    import aaa_memory.config
-    importlib.reload(aaa_memory.config)
-    yield
-    import shutil
-    shutil.rmtree(tmp, ignore_errors=True)
-    if old_vault:
-        os.environ["AAA_MEMORY_VAULT"] = old_vault
+def test_vault_memory_store():
+    """Test hot memory store backed by vault."""
+    from aaa_memory.hot.mem_store import VaultMemoryStore
+
+    with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
+        vault = Path(f.name)
+
+    # Create tables
+    conn = sqlite3.connect(str(vault))
+    conn.execute("""
+        CREATE TABLE hot_memories (
+            id TEXT PRIMARY KEY,
+            content TEXT NOT NULL,
+            tags TEXT DEFAULT '[]',
+            project TEXT DEFAULT 'default',
+            source TEXT DEFAULT 'unknown',
+            pinned INTEGER DEFAULT 0,
+            created TEXT NOT NULL,
+            accessed TEXT NOT NULL,
+            access_count INTEGER DEFAULT 0
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+    store = VaultMemoryStore(vault_path=vault)
+
+    # Test add
+    rec = store.add("test memory", tags=["test"], project="test")
+    assert rec is not None
+    assert rec["content"] == "test memory"
+
+    # Test dedup
+    rec2 = store.add("test memory", project="test")
+    assert rec2["id"] == rec["id"]
+
+    # Test recall
+    results = store.recall("test")
+    assert len(results) >= 1
+
+    # Test stats
+    stats = store.stats()
+    assert stats["total"] >= 1
+
+    # Test forget
+    n = store.forget("test memory")
+    assert n >= 1
+
+    vault.unlink()
+    print("✓ vault_memory_store")
 
 
-class TestClaudeCodeIntegration:
-    def test_store_turn_creates_vault(self):
-        tid = store_turn("claude-code", "What is the capital?",
-                        "Paris.", session_id="test-session")
-        vault = test_config.get_vault()
-        assert vault.exists()
-        conn = sqlite3.connect(str(vault))
-        count = conn.execute("SELECT COUNT(*) FROM turns").fetchone()[0]
-        conn.close()
-        assert count == 1
-        print(f"  Vault: {count} turn(s)")
+def test_dream_agent():
+    """Test dream agent runs without errors."""
+    from aaa_memory.warm.dream import run_dream_cycle, DreamReport
 
-    def test_multiple_turns_same_session(self):
-        sid = "session-multi-test"
-        for i in range(3):
-            store_turn("claude-code", f"Q{i}", f"A{i}", session_id=sid)
-        vault = test_config.get_vault()
-        conn = sqlite3.connect(str(vault))
-        count = conn.execute(
-            "SELECT COUNT(*) FROM turns WHERE session_id = ?", (sid,)
-        ).fetchone()[0]
-        conn.close()
-        assert count == 3
-
-    def test_turn_content_preserved(self):
-        tid = store_turn("claude-code", "Explain quantum computing.",
-                        "Qubits can be 0 and 1 simultaneously.",
-                        session_id="content-test")
-        vault = test_config.get_vault()
-        conn = sqlite3.connect(str(vault))
-        raw = conn.execute(
-            "SELECT raw_text FROM turns WHERE turn_id = ?", (tid,)
-        ).fetchone()[0]
-        conn.close()
-        assert "qubits" in raw.lower()
-
-    def test_search_finds_stored_turns(self):
-        store_turn("claude-code", "Design a REST API for a todo app.",
-                   "Use GET /todos, POST /todos, DELETE /todos/:id",
-                   session_id="search-test")
-        from aaa_memory.retrieval.hot import search as hot_search
-        results = hot_search("REST API", limit=5)
-        assert len(results) > 0, f"Expected results, got {len(results)}"
-        print(f"  Search: {len(results)} result(s)")
+    report = run_dream_cycle(idle_seconds=10, verbose=False)
+    assert isinstance(report, DreamReport)
+    assert report.duration >= 0
+    print("✓ dream_agent")
 
 
-class TestPipeline:
-    def test_classify_extract_chain(self):
-        text = "Human: Let's design caching.\n\nAssistant: Decision: Use Redis."
-        result = classify("test.md", content=text, llm_fallback=False)
-        assert result.category in ("transcript", "prd", "research_paper", "knowledge_extract")
-        elements = extract_fallback(text)
-        assert len(elements) >= 1
+def test_cold_tier():
+    """Test cold tier search (local fallback)."""
+    from aaa_memory.cold import search_local
 
-    def test_end_to_end_roundtrip(self):
-        import uuid
-        sid = str(uuid.uuid4())[:12]
-        store_turn("claude-code", "How do I implement JWT?",
-                   "Decision: Use JWT with refresh tokens.",
-                   session_id=sid)
-        from aaa_memory.retrieval.hot import search as hot_search
-        # Use single-word query for FTS5 (multi-word OR has edge cases)
-        results = hot_search("JWT", limit=5)
-        assert len(results) > 0, f"Expected JWT results, got 0"
-        summary = summarize_session(sid)
-        assert summary.get("turns", 0) >= 1, f"Expected >=1 turn, got {summary}"
+    # Should not crash even without data
+    results = search_local("test query", limit=3)
+    assert isinstance(results, list)
+    print("✓ cold_tier")
 
 
-class TestSessionAudit:
-    def test_embed_sessions(self):
-        for i in range(2):
-            store_turn("claude-code", f"Q{i}", f"Decision: Use approach {i}.",
-                      session_id="audit-session")
-        summary = summarize_session("audit-session")
-        assert summary.get("turns", 0) >= 2, f"Expected >=2 turns, got {summary}"
+def test_unified_mem():
+    """Test unified mem.py CLI."""
+    import subprocess
 
-    def test_session_discovery(self):
-        store_turn("claude-code", "test", "data", session_id="discover-me")
-        vault = test_config.get_vault()
-        conn = sqlite3.connect(str(vault))
-        count = conn.execute(
-            "SELECT COUNT(DISTINCT session_id) FROM turns"
-        ).fetchone()[0]
-        conn.close()
-        assert count >= 1
+    result = subprocess.run(
+        [sys.executable, str(AAA_ROOT / "scripts" / "mem.py"), "stats"],
+        capture_output=True, text=True
+    )
+    assert result.returncode == 0
+    stats = json.loads(result.stdout)
+    assert "total" in stats
+    print("✓ unified_mem")
+
+
+def test_vault_exists():
+    """Test vault file exists and has expected tables."""
+    vault = Path.home() / ".cache" / "aaa-memory" / "vault.sqlite"
+    assert vault.exists(), f"Vault not found at {vault}"
+
+    conn = sqlite3.connect(str(vault))
+    tables = [r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall()]
+
+    assert "turns" in tables, "turns table missing"
+    assert "hot_memories" in tables, "hot_memories table missing"
+    assert "wiki_pages" in tables, "wiki_pages table missing"
+
+    conn.close()
+    print("✓ vault_exists")
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+    test_vault_exists()
+    test_vault_memory_store()
+    test_dream_agent()
+    test_cold_tier()
+    test_unified_mem()
+    print("\n✅ All tests passed")

@@ -11,6 +11,7 @@ Uses Nemotron 3 Super (free) via OpenRouter to extract knowledge elements:
 """
 
 from dataclasses import dataclass, asdict
+from pathlib import Path
 from typing import List, Optional
 import json
 import openai
