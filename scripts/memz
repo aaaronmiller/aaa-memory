@@ -1,0 +1,322 @@
+#!/usr/bin/env python3
+"""
+memz — unified memory CLI for aaa-memory.
+
+One command to search, store, recall, and manage persistent memory
+across all AI agents.
+
+Usage:
+    memz search "query"              # Search all tiers
+    memz store "fact"                # Store a memory
+    memz recall "query"              # Alias for search
+    memz inject                      # Context block for hooks
+    memz list                        # List recent memories
+    memz forget "id|substring"       # Delete a memory
+    memz capture <file>              # Extract from transcript
+    memz dream [--idle N]            # Run dream agent
+    memz stats                       # Show system stats
+    memz setup                       # Run setup wizard
+    memz clawmem status              # ClawMem status
+    memz clawmem search "query"      # Search ClawMem directly
+    memz clawmem reindex             # Re-index ClawMem
+"""
+
+import sys
+import json
+import argparse
+from pathlib import Path
+
+AAA_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(AAA_ROOT / "src"))
+
+
+def cmd_search(args):
+    """Search across all memory tiers."""
+    from aaa_memory.retrieval.pipeline import search
+    results = search(args.query, limit=args.limit)
+    if args.json:
+        print(json.dumps(results, indent=2, default=str))
+    else:
+        if not results:
+            print("(no results)")
+            return
+        for r in results:
+            content = r.get("raw_text", r.get("content", ""))[:120]
+            agent = r.get("agent", "?")
+            score = r.get("score", 0)
+            print(f"  [{agent}] {content}  (score={score:.2f})")
+
+
+def cmd_store(args):
+    """Store a memory in the hot tier."""
+    from aaa_memory.hot.mem_store import VaultMemoryStore
+    store = VaultMemoryStore()
+    tags = [t.strip() for t in args.tags.split(",") if t.strip()] if args.tags else []
+    rec = store.add(args.content, tags=tags, project=args.project,
+                    source=args.source, pinned=args.pin)
+    if rec:
+        print(f"✓ Stored: {rec['id']}")
+    else:
+        print("✗ Failed to store")
+
+
+def cmd_inject(args):
+    """Render context block for hooks."""
+    from aaa_memory.hot.mem_store import VaultMemoryStore
+    store = VaultMemoryStore()
+    if args.query:
+        results = store.recall(args.query, limit=args.limit)
+    else:
+        results = store.recent(limit=args.limit)
+
+    if not results:
+        return
+
+    lines = ['<memory source="aaa-memory">']
+    for m in results:
+        pin = "📌 " if m.get("pinned") else ""
+        tags = f" [{', '.join(m['tags'])}]" if m.get("tags") else ""
+        lines.append(f"- {pin}{m['content'][:100]}{tags}")
+    lines.append("</memory>")
+    print("\n".join(lines))
+
+
+def cmd_list(args):
+    """List recent memories."""
+    from aaa_memory.hot.mem_store import VaultMemoryStore
+    store = VaultMemoryStore()
+    results = store.recent(limit=args.limit, project=args.project)
+    if args.json:
+        print(json.dumps(results, indent=2, default=str))
+    else:
+        for r in results:
+            pin = "📌" if r.get("pinned") else " "
+            print(f"{pin} {r['id'][:12]}  [{r['project']}]  {r['content'][:70]}")
+
+
+def cmd_forget(args):
+    """Delete a memory."""
+    from aaa_memory.hot.mem_store import VaultMemoryStore
+    store = VaultMemoryStore()
+    n = store.forget(args.needle)
+    print(f"Removed {n} memor{'y' if n == 1 else 'ies'}.")
+
+
+def cmd_capture(args):
+    """Capture memories from a transcript."""
+    import subprocess
+    result = subprocess.run(
+        [sys.executable, str(AAA_ROOT / "scripts" / "mem.py"), "capture",
+         args.transcript, "--source", args.source, "--project", args.project],
+        capture_output=True, text=True
+    )
+    print(result.stdout.strip())
+
+
+def cmd_dream(args):
+    """Run the dream agent."""
+    from aaa_memory.warm.dream import run_dream_cycle
+    report = run_dream_cycle(idle_seconds=args.idle, verbose=not args.quiet)
+    if args.json:
+        from dataclasses import asdict
+        print(json.dumps(asdict(report), indent=2))
+    else:
+        print(f"✓ Dream cycle complete ({report.duration}s)")
+        print(f"  Claims: {report.claims_extracted} → {report.claims_accepted} accepted")
+        print(f"  Pages: {report.pages_created} created, {report.pages_updated} updated")
+        if report.skills_created:
+            print(f"  Skills: {report.skills_created} auto-created")
+
+
+def cmd_stats(args):
+    """Show system statistics."""
+    import sqlite3
+    from pathlib import Path
+
+    vault = Path.home() / ".cache" / "aaa-memory" / "vault.sqlite"
+    if not vault.exists():
+        print("✗ Vault not found")
+        return
+
+    conn = sqlite3.connect(str(vault))
+    stats = {}
+
+    # Turns
+    try:
+        stats["turns"] = conn.execute("SELECT COUNT(*) FROM turns").fetchone()[0]
+    except:
+        stats["turns"] = 0
+
+    # Hot memories
+    try:
+        stats["memories"] = conn.execute("SELECT COUNT(*) FROM hot_memories").fetchone()[0]
+        stats["pinned"] = conn.execute("SELECT COUNT(*) FROM hot_memories WHERE pinned=1").fetchone()[0]
+    except:
+        stats["memories"] = 0
+        stats["pinned"] = 0
+
+    # Wiki pages
+    try:
+        stats["wiki_pages"] = conn.execute("SELECT COUNT(*) FROM wiki_pages").fetchone()[0]
+    except:
+        stats["wiki_pages"] = 0
+
+    conn.close()
+
+    # ClawMem
+    clawmem_ok = False
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://localhost:7438/health")
+        resp = urllib.request.urlopen(req, timeout=2)
+        data = json.loads(resp.read().decode())
+        stats["clawmem_docs"] = data.get("documents", 0)
+        clawmem_ok = True
+    except Exception:
+        stats["clawmem_docs"] = 0
+
+    # ClawMem actual doc count (health endpoint may count fragments)
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://localhost:7438/documents?pattern=*")
+        resp = urllib.request.urlopen(req, timeout=5)
+        data = json.loads(resp.read().decode())
+        stats["clawmem_docs"] = data.get("count", 0)
+    except Exception:
+        pass
+
+    if args.json:
+        print(json.dumps(stats, indent=2))
+    else:
+        print("aaa-memory stats")
+        print(f"  Vault turns:     {stats['turns']}")
+        print(f"  Hot memories:    {stats['memories']} ({stats['pinned']} pinned)")
+        print(f"  Wiki pages:      {stats['wiki_pages']}")
+        print(f"  ClawMem docs:    {stats['clawmem_docs']}" + (" ✓" if clawmem_ok else " (offline)"))
+
+
+def cmd_clawmem(args):
+    """ClawMem sub-commands."""
+    import subprocess
+
+    if args.clawmem_cmd == "status":
+        try:
+            import urllib.request
+            req = urllib.request.Request("http://localhost:7438/health")
+            resp = urllib.request.urlopen(req, timeout=2)
+            data = json.loads(resp.read().decode())
+            print(f"ClawMem: {data.get('status', '?')}")
+            print(f"  Documents: {data.get('documents', 0)}")
+            print(f"  Needs embedding: {data.get('needsEmbedding', 0)}")
+            print(f"  Has vectors: {data.get('hasVectors', False)}")
+        except Exception as e:
+            print(f"ClawMem: offline ({e})")
+
+    elif args.clawmem_cmd == "search":
+        import urllib.request
+        body = json.dumps({"query": args.query, "limit": args.limit, "mode": "fts"}).encode()
+        req = urllib.request.Request("http://localhost:7438/search", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            resp = urllib.request.urlopen(req, timeout=10)
+            data = json.loads(resp.read())
+            for r in data.get("results", []):
+                print(f"  [{r.get('docid','?')}] {r.get('title','?')[:60]}")
+        except Exception as e:
+            print(f"Search failed: {e}")
+
+    elif args.clawmem_cmd == "reindex":
+        subprocess.run(["clawmem", "update", "--embed"], timeout=120)
+
+
+def cmd_setup(args):
+    """Run setup wizard."""
+    from aaa_memory.setup import main as setup_main
+    sys.argv = ["setup"]
+    setup_main()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="memz",
+        description="aaa-memory — persistent memory for AI agents"
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # search / recall
+    p_search = sub.add_parser("search", aliases=["recall"], help="Search memories")
+    p_search.add_argument("query", help="Search query")
+    p_search.add_argument("--limit", type=int, default=5)
+    p_search.add_argument("--json", action="store_true")
+    p_search.set_defaults(func=cmd_search)
+
+    # store
+    p_store = sub.add_parser("store", help="Store a memory")
+    p_store.add_argument("content", help="Fact to remember")
+    p_store.add_argument("--tags", default="", help="Comma-separated tags")
+    p_store.add_argument("--project", default="default")
+    p_store.add_argument("--source", default="cli")
+    p_store.add_argument("--pin", action="store_true")
+    p_store.set_defaults(func=cmd_store)
+
+    # inject
+    p_inject = sub.add_parser("inject", help="Render context block for hooks")
+    p_inject.add_argument("--query", default=None)
+    p_inject.add_argument("--limit", type=int, default=6)
+    p_inject.set_defaults(func=cmd_inject)
+
+    # list
+    p_list = sub.add_parser("list", help="List recent memories")
+    p_list.add_argument("--limit", type=int, default=20)
+    p_list.add_argument("--project", default=None)
+    p_list.add_argument("--json", action="store_true")
+    p_list.set_defaults(func=cmd_list)
+
+    # forget
+    p_forget = sub.add_parser("forget", help="Delete a memory")
+    p_forget.add_argument("needle", help="ID or substring to match")
+    p_forget.set_defaults(func=cmd_forget)
+
+    # capture
+    p_capture = sub.add_parser("capture", help="Capture from transcript")
+    p_capture.add_argument("transcript", help="Path to transcript file")
+    p_capture.add_argument("--source", default="unknown")
+    p_capture.add_argument("--project", default="default")
+    p_capture.set_defaults(func=cmd_capture)
+
+    # dream
+    p_dream = sub.add_parser("dream", help="Run dream agent")
+    p_dream.add_argument("--idle", type=int, default=600, help="Idle seconds for budget")
+    p_dream.add_argument("--quiet", action="store_true")
+    p_dream.add_argument("--json", action="store_true")
+    p_dream.set_defaults(func=cmd_dream)
+
+    # stats
+    p_stats = sub.add_parser("stats", help="Show system stats")
+    p_stats.add_argument("--json", action="store_true")
+    p_stats.set_defaults(func=cmd_stats)
+
+    # setup
+    p_setup = sub.add_parser("setup", help="Run setup wizard")
+    p_setup.set_defaults(func=cmd_setup)
+
+    # clawmem
+    p_clawmem = sub.add_parser("clawmem", help="ClawMem sub-commands")
+    clawmem_sub = p_clawmem.add_subparsers(dest="clawmem_cmd", required=True)
+
+    clawmem_sub.add_parser("status", help="ClawMem status")
+
+    p_cm_search = clawmem_sub.add_parser("search", help="Search ClawMem")
+    p_cm_search.add_argument("query")
+    p_cm_search.add_argument("--limit", type=int, default=5)
+
+    clawmem_sub.add_parser("reindex", help="Re-index ClawMem")
+
+    p_clawmem.set_defaults(func=cmd_clawmem)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
