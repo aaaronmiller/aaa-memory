@@ -1,5 +1,7 @@
 # aaa-memory
 
+![Architecture](docs/screenshot.png)
+
 [![GitHub stars](https://img.shields.io/github/stars/aaaronmiller/aaa-memory?style=flat-square)](https://github.com/aaaronmiller/aaa-memory)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue?style=flat-square&logo=python)](https://python.org)
 
