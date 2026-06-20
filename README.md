@@ -1,5 +1,8 @@
 # aaa-memory
 
+[![GitHub stars](https://img.shields.io/github/stars/aaaronmiller/aaa-memory?style=flat-square)](https://github.com/aaaronmiller/aaa-memory)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue?style=flat-square&logo=python)](https://python.org)
+
 **Multi-tier persistent memory for AI agents.** One vault, every agent, cross-session recall.
 
 > Everything you've ever told any AI — searchable from all of them.
