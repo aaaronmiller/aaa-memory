@@ -1,58 +1,61 @@
 """
 MCP server for aaa-memory.
 
-Exposes memory operations as MCP tools for AI agents (Claude Code, etc.).
+Exposes memory operations as MCP tools for AI agents.
 
 Tools:
-  - memory_search(query, limit) — hybrid retrieval across tiers
-  - memory_sessions(project_id) — list sessions for a project
-  - memory_timeline(project_id, days) — generate timeline markdown
-  - memory_store(agent, turn_data) — store a turn into the hot vault
+  - memory_search(query, limit) - hybrid retrieval across tiers
+  - memory_sessions(project_id) - list sessions for a project
+  - memory_timeline(project_id, days) - generate timeline markdown
+  - memory_store(agent, turn_data, session_id) - store content in the vault
 """
 
 import json
-import os
-import sys
-from typing import List, Dict, Optional
+import sqlite3
+import uuid
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 from aaa_memory import config
-from aaa_memory.retrieval.pipeline import search as memory_search
 from aaa_memory.audit.timeline import assemble_timeline
-
+from aaa_memory.hot.mem_store import VaultMemoryStore
+from aaa_memory.retrieval.pipeline import search as memory_search
 
 
 def handle_search(query: str, limit: int = 20) -> List[Dict]:
     """Search across all memory tiers."""
-    results = memory_search(query, limit=limit)
-    return results
+    return memory_search(query, limit=limit)
 
 
 def handle_sessions(project_id: Optional[str] = None) -> List[Dict]:
-    """List sessions, optionally filtered by project. Uses actual vault schema."""
+    """List sessions, optionally filtered by project. Uses the current vault schema."""
     if not config.VAULT.exists():
         return []
-    import sqlite3
+
     conn = sqlite3.connect(str(config.VAULT))
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     try:
         if project_id:
             cur.execute(
-                "SELECT session_id, agent, MIN(created_at) as first_seen, MAX(created_at) as last_seen, "
-                "COUNT(*) as turns FROM turns WHERE metadata LIKE ? "
-                "GROUP BY session_id ORDER BY last_seen DESC LIMIT 50",
+                "SELECT session_id, agent, MIN(created_at) as first_seen, "
+                "MAX(created_at) as last_seen, COUNT(*) as turns "
+                "FROM turns WHERE metadata LIKE ? "
+                "GROUP BY session_id, agent ORDER BY last_seen DESC LIMIT 50",
                 (f'%{project_id}%',),
             )
         else:
             cur.execute(
-                "SELECT session_id, agent, MIN(created_at) as first_seen, MAX(created_at) as last_seen, "
-                "COUNT(*) as turns FROM turns "
-                "GROUP BY session_id ORDER BY last_seen DESC LIMIT 50",
+                "SELECT session_id, agent, MIN(created_at) as first_seen, "
+                "MAX(created_at) as last_seen, COUNT(*) as turns "
+                "FROM turns GROUP BY session_id, agent "
+                "ORDER BY last_seen DESC LIMIT 50"
             )
         results = [dict(row) for row in cur.fetchall()]
     except sqlite3.OperationalError:
         results = []
-    conn.close()
+    finally:
+        conn.close()
     return results
 
 
@@ -61,107 +64,107 @@ def handle_timeline(project_id: str, days: int = 7) -> str:
     return assemble_timeline(project_id, days)
 
 
-def handle_store(agent: str, turn_data: str, session_id: Optional[str] = None) -> Dict:
-    """Store a turn into the hot vault."""
-    import sqlite3
-    import uuid
-    from datetime import datetime
-
-    config.VAULT.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(config.VAULT))
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS turns (
-            turn_id TEXT PRIMARY KEY,
-            session_id TEXT,
-            agent TEXT,
-            project TEXT,
-            timestamp TEXT,
-            raw_text TEXT
-        )
-    """)
-
-    tid = str(uuid.uuid4())
-    sid = session_id or tid
-    ts = datetime.utcnow().isoformat()
-
+def _ensure_turns_table(conn: sqlite3.Connection) -> None:
     conn.execute(
-        "INSERT OR IGNORE INTO turns (turn_id, session_id, agent, project, timestamp, raw_text) VALUES (?, ?, ?, ?, ?, ?)",
-        (tid, sid, agent, "default", ts, turn_data),
+        """
+        CREATE TABLE IF NOT EXISTS turns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            turn_id TEXT UNIQUE NOT NULL,
+            agent TEXT NOT NULL,
+            session_id TEXT,
+            turn_index INTEGER,
+            turn_type TEXT NOT NULL,
+            raw_text TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            metadata TEXT
+        )
+        """
     )
-    conn.commit()
-    conn.close()
-
-    return {"turn_id": tid, "session_id": sid, "status": "stored"}
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_turns_session ON turns(session_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_turns_agent ON turns(agent)")
 
 
-def run_server():
-    """Run the MCP server on stdio (standard MCP protocol)."""
-    import asyncio
-    from mcp.server import Server
-    from mcp.server.stdio import stdio_server
+def handle_store(agent: str, turn_data: str, session_id: Optional[str] = None) -> Dict:
+    """Store content in both the turns table and hot memories."""
+    config.VAULT.parent.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc).isoformat()
+    turn_id = str(uuid.uuid4())
+    sid = session_id or turn_id
+    agent_name = agent or "unknown"
 
-    app = Server("aaa-memory")
+    conn = sqlite3.connect(str(config.VAULT))
+    try:
+        _ensure_turns_table(conn)
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO turns
+                (turn_id, session_id, agent, turn_index, turn_type, raw_text, created_at, metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                turn_id,
+                sid,
+                agent_name,
+                None,
+                "memory_store",
+                turn_data or "",
+                now,
+                json.dumps({"source": "mcp", "project": "default"}),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
-    @app.call_tool()
-    async def call_tool(name: str, arguments: dict) -> List[Dict]:
-        if name == "memory_search":
-            results = handle_search(arguments.get("query", ""), arguments.get("limit", 20))
-            return [{"type": "text", "text": json.dumps(results, indent=2)}]
-        elif name == "memory_sessions":
-            results = handle_sessions(arguments.get("project_id"))
-            return [{"type": "text", "text": json.dumps(results, indent=2)}]
-        elif name == "memory_timeline":
-            text = handle_timeline(arguments.get("project_id", ""), arguments.get("days", 7))
-            return [{"type": "text", "text": text}]
-        elif name == "memory_store":
-            result = handle_store(arguments.get("agent", ""), arguments.get("turn_data", ""), arguments.get("session_id"))
-            return [{"type": "text", "text": json.dumps(result)}]
-        else:
-            return [{"type": "text", "text": json.dumps({"error": f"unknown tool: {name}"})}]
+    memory = None
+    if (turn_data or "").strip():
+        memory = VaultMemoryStore().add(
+            turn_data,
+            tags=["mcp", "memory_store"],
+            project="default",
+            source=agent_name,
+        )
 
-    @app.list_tools()
-    async def list_tools():
-        return [
-            {
-                "name": "memory_search",
-                "description": "Search across all memory tiers (hot/warm/cold) using hybrid retrieval",
-                "inputSchema": {"type": "object", "properties": {
-                    "query": {"type": "string", "description": "Natural language query"},
-                    "limit": {"type": "number", "description": "Max results (default 20)"},
-                }},
-            },
-            {
-                "name": "memory_sessions",
-                "description": "List sessions, optionally filtered by project",
-                "inputSchema": {"type": "object", "properties": {
-                    "project_id": {"type": "string", "description": "Filter by project (optional)"},
-                }},
-            },
-            {
-                "name": "memory_timeline",
-                "description": "Generate project timeline as markdown",
-                "inputSchema": {"type": "object", "properties": {
-                    "project_id": {"type": "string"},
-                    "days": {"type": "number", "description": "Lookback window (default 7)"},
-                }},
-            },
-            {
-                "name": "memory_store",
-                "description": "Store a turn into the hot vault",
-                "inputSchema": {"type": "object", "properties": {
-                    "agent": {"type": "string"},
-                    "turn_data": {"type": "string", "description": "The turn content"},
-                    "session_id": {"type": "string", "description": "Optional session grouping ID"},
-                }},
-            },
-        ]
+    return {
+        "turn_id": turn_id,
+        "session_id": sid,
+        "memory_id": memory.get("id") if memory else None,
+        "status": "stored",
+    }
 
-    async def _run():
-        async with stdio_server() as streams:
-            await app.run(streams)
 
-    asyncio.run(_run())
+def run_server() -> None:
+    """Run the MCP server on stdio using the installed FastMCP API."""
+    from mcp.server.fastmcp import FastMCP
+
+    app = FastMCP("aaa-memory")
+
+    @app.tool(name="memory_search")
+    def memory_search_tool(query: str, limit: int = 20) -> str:
+        """Search across all memory tiers using hybrid retrieval."""
+        return json.dumps(handle_search(query, limit), indent=2)
+
+    @app.tool(name="memory_sessions")
+    def memory_sessions_tool(project_id: Optional[str] = None) -> str:
+        """List sessions, optionally filtered by project."""
+        return json.dumps(handle_sessions(project_id), indent=2)
+
+    @app.tool(name="memory_timeline")
+    def memory_timeline_tool(project_id: str, days: int = 7) -> str:
+        """Generate a project timeline as markdown."""
+        return handle_timeline(project_id, days)
+
+    @app.tool(name="memory_store")
+    def memory_store_tool(agent: str, turn_data: str, session_id: Optional[str] = None) -> str:
+        """Store a turn or durable memory in the aaa-memory vault."""
+        return json.dumps(handle_store(agent, turn_data, session_id), indent=2)
+
+    app.run("stdio")
+
+
+def main() -> None:
+    run_server()
 
 
 if __name__ == "__main__":
-    run_server()
+    main()

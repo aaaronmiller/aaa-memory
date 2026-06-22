@@ -25,6 +25,7 @@ dependencies = [
     "torch>=2.0",            # for transformers
     "requests>=2.28",
     "rich>=13.0",            # CLI UI
+    "kuzu>=0.11.3",          # warm-tier graph/session retrieval
 ]
 
 [project.optional-dependencies]
