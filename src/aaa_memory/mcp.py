@@ -133,8 +133,20 @@ def handle_store(agent: str, turn_data: str, session_id: Optional[str] = None) -
     }
 
 
-def run_server() -> None:
-    """Run the MCP server on stdio using the installed FastMCP API."""
+def run_server(transport: str = "stdio", port: int = 7437, host: str = "127.0.0.1") -> None:
+    """Run the MCP server.
+
+    Two modes:
+      - stdio (default): per-session stdio transport. DEPRECATED for production -
+        use SSE daemon mode instead to avoid per-session process spawning.
+      - sse: shared singleton daemon on host:port. All sessions connect to the same
+        process via URL-based MCP config.
+
+    Args:
+        transport: "stdio" or "sse"
+        port: HTTP port for SSE mode
+        host: bind address for SSE mode
+    """
     from mcp.server.fastmcp import FastMCP
 
     app = FastMCP("aaa-memory")
@@ -159,11 +171,38 @@ def run_server() -> None:
         """Store a turn or durable memory in the aaa-memory vault."""
         return json.dumps(handle_store(agent, turn_data, session_id), indent=2)
 
-    app.run("stdio")
+    if transport == "sse":
+        # SSE daemon mode: shared singleton, all sessions connect via URL
+        import uvicorn
+        sse_app = app.sse_app()
+        print(f"aaa-memory MCP SSE daemon listening on http://{host}:{port}/sse", flush=True)
+        uvicorn.run(sse_app, host=host, port=port, log_level="warning")
+    else:
+        # Stdio mode: per-session (backward compat)
+        app.run("stdio")
 
 
 def main() -> None:
-    run_server()
+    """Entry point.
+
+    Usage:
+        python -m aaa_memory.mcp              # stdio (per-session, deprecated)
+        python -m aaa_memory.mcp serve         # SSE daemon (shared singleton)
+        python -m aaa_memory.mcp serve --port 7437 --host 127.0.0.1
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run aaa-memory MCP server")
+    subparsers = parser.add_subparsers(dest="command")
+    serve = subparsers.add_parser("serve", help="run a shared SSE daemon")
+    serve.add_argument("--port", type=int, default=7437)
+    serve.add_argument("--host", default="127.0.0.1")
+
+    args = parser.parse_args()
+    if args.command == "serve":
+        run_server(transport="sse", port=args.port, host=args.host)
+    else:
+        run_server(transport="stdio")
 
 
 if __name__ == "__main__":

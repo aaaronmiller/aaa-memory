@@ -15,7 +15,7 @@ def classify(
     result = rule_classify(path, content, llm_fallback=None)
     if result.confidence >= 0.7:
         return result
-    if llm_fallback and result.category not in ("unknown",):
+    if llm_fallback:
         try:
             from .llm_classifier import classify as llm_classify_func
 
@@ -24,7 +24,10 @@ def classify(
                 if content is not None
                 else path.read_text(errors="replace")[:8000]
             )
-            llm_cat = llm_classify_func(text, api_key=llm_api_key)
+            if llm_api_key is None:
+                llm_cat = llm_classify_func(text)
+            else:
+                llm_cat = llm_classify_func(text, api_key=llm_api_key)
             from . import ClassificationResult as CR
 
             return CR(category=llm_cat, confidence=0.75, llm_used=True)

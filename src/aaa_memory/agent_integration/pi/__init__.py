@@ -1,20 +1,20 @@
-"""OpenCode agent integration.
+"""Pi agent integration stub.
 
-OpenCode is a TypeScript CLI tool. Integration is via the `clawmem` CLI
-(which accesses the same SQLite vault) and the aaa-memory REST API.
+Pi is a Go-based CLI tool for model routing. It has no native plugin system.
 
-For npm plugin integration, the OpenCode plugin would:
-  1. Call `clawmem hook context-surfacing` for pre-turn context injection
-  2. Call `clawmem search <query>` for memory search
-  3. Call `clawmem diary write` for durable turn recording
-  4. Call `clawmem serve` as persistent REST API for async operations
+Integration is done via Claude Code hooks (which Pi sessions share when
+launched through the `xx` launcher) and the `clawmem` CLI.
 
-Usage from OpenCode plugin (TypeScript):
-```typescript
-import { execSync } from "child_process";
-const context = execSync("clawmem hook context-surfacing").toString();
-const results = execSync(`clawmem search "${query}"`).toString();
-execSync(`clawmem diary write "${turnSummary}" -t agent-turn -a opencode`);
+Usage:
+```bash
+# Record context
+clawmem diary write "$TURN_SUMMARY" -t agent-turn -a pi
+
+# Search memory
+clawmem search "what did we discuss"
+
+# Surface context at session start
+clawmem hook context-surfacing
 ```
 """
 
@@ -22,8 +22,6 @@ import subprocess
 import json
 from pathlib import Path
 from typing import Optional
-
-from .parser import parse_opencode_sessions
 
 
 CLAWMEM_BIN = str(Path.home() / ".npm-global" / "bin" / "clawmem")
@@ -36,15 +34,15 @@ def search(query: str, limit: int = 10) -> list:
             [CLAWMEM_BIN, "search", query, "-n", str(limit), "--json"],
             capture_output=True, text=True, timeout=30,
         )
-        if result.returncode == 0:
-            return json.loads(result.stdout) if result.stdout.strip() else []
+        if result.returncode == 0 and result.stdout.strip():
+            return json.loads(result.stdout)
         return []
     except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError):
         return []
 
 
 def store_turn(prompt: str, response: str, session_id: Optional[str] = None) -> bool:
-    """Store a conversation turn via clawmem CLI."""
+    """Store a turn via clawmem CLI."""
     try:
         entry = "\n\n".join(
             part for part in [
@@ -54,7 +52,7 @@ def store_turn(prompt: str, response: str, session_id: Optional[str] = None) -> 
             ] if part
         )
         result = subprocess.run(
-            [CLAWMEM_BIN, "diary", "write", entry, "-t", "agent-turn", "-a", "opencode"],
+            [CLAWMEM_BIN, "diary", "write", entry, "-t", "agent-turn", "-a", "pi"],
             capture_output=True, text=True, timeout=15,
         )
         return result.returncode == 0

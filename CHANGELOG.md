@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Added shared SSE daemon mode for the aaa-memory MCP server via `aaa-memory-mcp serve`.
+- Added CLI-backed Codex, OpenCode, Qwen, and Pi integration helpers for memory search/context access.
+- Added tests for CLI-backed agent integration command construction.
+
+### Fixed
+- Restored the public `parse_opencode_sessions` export to avoid breaking existing imports.
+- Fixed Codex/OpenCode/Pi turn recording helpers to use the real `clawmem diary write` command instead of a nonexistent `clawmem hook store-turn`.
+- Fixed OpenCode/Pi memory search helpers to use `clawmem search -n ... --json` instead of unsupported `--limit` output parsing.
+- Replaced ad hoc aaa-memory MCP argument parsing with `argparse` validation for bad daemon flags.
+- Fixed low-confidence classifier fallback so `unknown` rule results can still use the LLM classifier.
+
 ## [1.0.0] — 2026-06-17
 ### Added
 - Complete multi-tier memory pipeline (hot/warm/cold)
