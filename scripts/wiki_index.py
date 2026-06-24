@@ -113,7 +113,7 @@ def compute_hash(content: str) -> str:
 
 def embed_text(text: str) -> bytes:
     """Generate embedding for text, return raw float32 bytes."""
-    embedder = get_embedder("gemma")  # use lightweight fallback
+    embedder = get_embedder("auto")
     emb = embedder.embed(text[:8192])  # limit length
     return emb.vector.tobytes()
 

@@ -2,9 +2,10 @@
 Embedding encoder — multi-provider with priority chain.
 
 Priority order:
-1. Qwen3-Embedding-8B (local, Ryzen desktop, ~5GB VRAM)
-2. EmbeddingGemma-300M (local, Surface, ~0.4GB VRAM)
-3. Jina v3 API (cloud fallback, free tier)
+1. OpenRouter Qwen3-Embedding-8B (cloud, best cost/quality balance)
+2. Qwen3-Embedding-8B local (GPU, vLLM or transformers)
+3. EmbeddingGemma-300M local (GPU preferred, CPU only if unavoidable)
+4. Jina v3 API (cloud fallback)
 
 Embeddings stored in:
 - Markdown frontmatter (base64-encoded, git-trackable)
@@ -13,13 +14,12 @@ Embeddings stored in:
 """
 
 import base64
-import json
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 import numpy as np
+import openai
 
 # ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ class Embedding:
     model: str
     vector: np.ndarray  # shape (dim,)
     tokens: int
-    provider: str  # 'local-qwen3', 'local-gemma', 'cloud-jina'
+    provider: str  # 'openrouter', 'local-qwen3', 'local-gemma', 'cloud-jina'
 
 
 # ── Abstract Base ─────────────────────────────────────────────────────────────
@@ -108,6 +108,57 @@ class Qwen3Embedder(Embedder):
         return 4096  # Qwen3-Embedding-8B output dim
 
 
+class OpenRouterEmbedder(Embedder):
+    """OpenRouter-hosted embeddings via OpenAI-compatible API."""
+
+    DEFAULT_MODEL = "qwen/qwen3-embedding-8b"
+    BASE_URL = "https://openrouter.ai/api/v1"
+
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        http_referer: Optional[str] = None,
+        app_title: Optional[str] = None,
+    ):
+        import openai
+
+        self.model = model or os.getenv("OPENROUTER_EMBED_MODEL", self.DEFAULT_MODEL)
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        if not self.api_key:
+            raise RuntimeError("OPENROUTER_API_KEY required for OpenRouter embeddings")
+        headers = {}
+        if http_referer or os.getenv("OPENROUTER_HTTP_REFERER"):
+            headers["HTTP-Referer"] = http_referer or os.getenv("OPENROUTER_HTTP_REFERER")
+        if app_title or os.getenv("OPENROUTER_APP_TITLE"):
+            headers["X-OpenRouter-Title"] = app_title or os.getenv("OPENROUTER_APP_TITLE")
+        self.client = openai.OpenAI(
+            api_key=self.api_key,
+            base_url=self.BASE_URL,
+            default_headers=headers or None,
+        )
+        self._dim = 4096
+
+    def embed(self, text: str) -> Embedding:
+        resp = self.client.embeddings.create(
+            model=self.model,
+            input=text,
+            encoding_format="float",
+        )
+        vec = np.array(resp.data[0].embedding, dtype=np.float32)
+        self._dim = len(vec)
+        return Embedding(
+            model=self.model,
+            vector=vec,
+            tokens=len(text.split()),
+            provider="openrouter",
+        )
+
+    @property
+    def dimension(self) -> int:
+        return self._dim
+
+
 # ── Provider 2: EmbeddingGemma-300M (local lightweight) ───────────────────────
 
 
@@ -121,18 +172,22 @@ class Gemma300MEmbedder(Embedder):
     def __init__(self, model_name: str = "google/embedding-gemma-300m"):
         self.model_name = model_name
         from sentence_transformers import SentenceTransformer
+        import torch
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         try:
-            self.model = SentenceTransformer(model_name, device="cpu")
+            self.model = SentenceTransformer(model_name, device=self.device)
             self._dim = self.model.get_sentence_embedding_dimension()
         except Exception as e:
             print(
                 f"[embedding] {model_name} unavailable ({e}), falling back to all-MiniLM-L6-v2"
             )
-            self.model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+            self.model = SentenceTransformer("all-MiniLM-L6-v2", device=self.device)
             self._dim = self.model.get_sentence_embedding_dimension()
-        # Half precision for memory savings
-        self.model.half()
+        if self.device == "cuda":
+            # Half precision for memory savings on GPU.
+            self.model.half()
 
     def embed(self, text: str) -> Embedding:
         vec = self.model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
@@ -193,15 +248,31 @@ def get_embedder(priority: str = "auto") -> Embedder:
     """
     Get the best available embedder following priority chain.
 
-    priority: 'auto' | 'qwen3' | 'gemma' | 'jina'
+    priority: 'auto' | 'openrouter' | 'qwen3' | 'gemma' | 'jina'
 
     Notes:
-    - Qwen3-Embedding-8B requires vLLM endpoint or sufficient VRAM — skip if unavailable
-    - Gemma uses sentence-transformers (all-MiniLM-L6-v2 fallback guaranteed)
+    - OpenRouter is preferred when OPENROUTER_API_KEY is present
+    - Qwen3-Embedding-8B requires vLLM endpoint or sufficient VRAM
+    - Gemma uses sentence-transformers with CUDA when available
     - Jina requires API key
     """
     if priority == "auto":
-        # 1. Try Gemma (lightweight, always works with sentence-transformers)
+        # 1. Cloud first, because it is the best cost/quality tradeoff and keeps
+        #    us out of the CPU fallback path on this box.
+        try:
+            return OpenRouterEmbedder()
+        except Exception as e:
+            print(f"[embedding] OpenRouter unavailable: {e}, trying local GPU...")
+
+        # 2. Try local GPU-backed Qwen3 when a vLLM endpoint is configured.
+        if os.getenv("VLLM_ENDPOINT"):
+            try:
+                return Qwen3Embedder()
+            except Exception as e:
+                print(f"[embedding] Qwen3 local failed: {e}, trying Gemma...")
+
+        # 3. Local lightweight fallback. Uses CUDA if present; CPU only if we
+        #    have no GPU path and no cloud key.
         try:
             return Gemma300MEmbedder()
         except Exception as e:
@@ -215,8 +286,10 @@ def get_embedder(priority: str = "auto") -> Embedder:
             pass
 
         raise RuntimeError(
-            "No embedder available. Install sentence-transformers or set JINA_API_KEY."
+            "No embedder available. Set OPENROUTER_API_KEY or JINA_API_KEY, or configure VLLM_ENDPOINT."
         )
+    elif priority == "openrouter":
+        return OpenRouterEmbedder()
     elif priority == "qwen3":
         return Qwen3Embedder()
     elif priority == "gemma":

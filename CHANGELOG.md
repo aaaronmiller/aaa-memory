@@ -6,6 +6,7 @@
 - Added CLI-backed Codex, OpenCode, Qwen, and Pi integration helpers for memory search/context access.
 - Added tests for CLI-backed agent integration command construction.
 - Added a Cass-backed Claude `UserPromptSubmit` fallback hook for bounded prior-session prompt history context.
+- Added OpenRouter embeddings support with Qwen3 Embedding 8B as the default cloud path.
 
 ### Fixed
 - Restored the public `parse_opencode_sessions` export to avoid breaking existing imports.
@@ -16,6 +17,7 @@
 - Fixed unified retrieval so hot/warm/wiki searches use the live SQLite FTS and ClawMem `/retrieve` schemas.
 - Fixed hot-to-warm and warm-to-cold transition code to work with the current `turns.created_at`/`metadata` vault schema.
 - Removed a misplaced pytest config entry that emitted an unknown-option warning on every test run.
+- Made local sentence-transformers embeddings use CUDA when available instead of defaulting to CPU.
 
 ## [1.0.0] — 2026-06-17
 ### Added

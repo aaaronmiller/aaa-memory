@@ -2,6 +2,7 @@
 
 from .encoder import (
     Embedder,
+    OpenRouterEmbedder,
     Qwen3Embedder,
     Gemma300MEmbedder,
     JinaEmbedder,
@@ -12,6 +13,7 @@ from .encoder import (
 
 __all__ = [
     "Embedder",
+    "OpenRouterEmbedder",
     "Qwen3Embedder",
     "Gemma300MEmbedder",
     "JinaEmbedder",
