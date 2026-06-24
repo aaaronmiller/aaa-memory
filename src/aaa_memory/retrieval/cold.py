@@ -18,6 +18,16 @@ COLD_VAULT = Path(
 TOP_K = 10
 
 
+def _project_from_metadata(raw: str | None) -> str:
+    if not raw:
+        return "default"
+    try:
+        metadata = json.loads(raw)
+    except json.JSONDecodeError:
+        return "default"
+    return str(metadata.get("project") or metadata.get("cwd") or "default")
+
+
 def _ensure_schema():
     """Create cold storage schema if it doesn't exist."""
     COLD_VAULT.parent.mkdir(parents=True, exist_ok=True)
@@ -92,14 +102,15 @@ def archive_turns(turn_ids: List[str], source_vault: str) -> int:
     count = 0
 
     for tid in turn_ids:
-        cur = src.execute("SELECT turn_id, agent, raw_text, project, session_id FROM turns WHERE turn_id = ?", (tid,))
+        cur = src.execute("SELECT turn_id, agent, raw_text, session_id, metadata FROM turns WHERE turn_id = ?", (tid,))
         row = cur.fetchone()
         if not row:
             continue
+        project = _project_from_metadata(row["metadata"])
         try:
             dst.execute(
                 "INSERT INTO turns_archive (turn_id, agent, raw_text, project, session_id) VALUES (?, ?, ?, ?, ?)",
-                (row["turn_id"], row["agent"], row["raw_text"], row["project"], row["session_id"]),
+                (row["turn_id"], row["agent"], row["raw_text"], project, row["session_id"]),
             )
             dst.execute(
                 "INSERT OR IGNORE INTO archive_meta (turn_id, original_vault) VALUES (?, ?)",

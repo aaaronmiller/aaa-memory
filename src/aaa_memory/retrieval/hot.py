@@ -49,8 +49,14 @@ def search(query: str, limit: int = TOP_K) -> List[Dict]:
                 fts_query = " OR ".join(terms)
             else:
                 fts_query = safe_query
-            cur.execute("SELECT turn_id, agent, raw_text, created_at, rank FROM turns_fts WHERE turns_fts MATCH ? ORDER BY rank LIMIT ?", (fts_query, limit))
-            fts_results = [{"turn_id": r["turn_id"], "agent": r["agent"], "raw_text": r["raw_text"], "score": 1.0 / (1.0 + float(r["rank"])) if r["rank"] else 0.0, "tier": "hot"} for r in cur.fetchall()]
+            cur.execute("""
+                SELECT t.turn_id, t.agent, t.raw_text, bm25(turns_fts) AS rank
+                FROM turns_fts
+                JOIN turns t ON t.turn_id = turns_fts.turn_id
+                WHERE turns_fts MATCH ?
+                ORDER BY rank LIMIT ?
+            """, (fts_query, limit))
+            fts_results = [{"turn_id": r["turn_id"], "agent": r["agent"], "raw_text": r["raw_text"], "score": 1.0 / (1.0 + abs(float(r["rank"]))) if r["rank"] else 0.0, "tier": "hot"} for r in cur.fetchall()]
             if fts_results:
                 return fts_results
     except sqlite3.OperationalError:

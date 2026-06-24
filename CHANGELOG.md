@@ -5,6 +5,7 @@
 - Added shared SSE daemon mode for the aaa-memory MCP server via `aaa-memory-mcp serve`.
 - Added CLI-backed Codex, OpenCode, Qwen, and Pi integration helpers for memory search/context access.
 - Added tests for CLI-backed agent integration command construction.
+- Added a Cass-backed Claude `UserPromptSubmit` fallback hook for bounded prior-session prompt history context.
 
 ### Fixed
 - Restored the public `parse_opencode_sessions` export to avoid breaking existing imports.
@@ -12,6 +13,9 @@
 - Fixed OpenCode/Pi memory search helpers to use `clawmem search -n ... --json` instead of unsupported `--limit` output parsing.
 - Replaced ad hoc aaa-memory MCP argument parsing with `argparse` validation for bad daemon flags.
 - Fixed low-confidence classifier fallback so `unknown` rule results can still use the LLM classifier.
+- Fixed unified retrieval so hot/warm/wiki searches use the live SQLite FTS and ClawMem `/retrieve` schemas.
+- Fixed hot-to-warm and warm-to-cold transition code to work with the current `turns.created_at`/`metadata` vault schema.
+- Removed a misplaced pytest config entry that emitted an unknown-option warning on every test run.
 
 ## [1.0.0] — 2026-06-17
 ### Added

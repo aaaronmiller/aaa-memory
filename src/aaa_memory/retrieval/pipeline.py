@@ -26,6 +26,17 @@ VAULT = Path.home() / ".cache" / "aaa-memory" / "vault.sqlite"
 CLAWMEM_URL = "http://localhost:7438"
 
 
+def _fts_query(query: str) -> str:
+    """Build a conservative FTS5 OR query from user text."""
+    terms = re.findall(r"[A-Za-z0-9_]+", query.lower())
+    terms = [t for t in terms if len(t) > 1]
+    seen = []
+    for term in terms:
+        if term not in seen:
+            seen.append(term)
+    return " OR ".join(f'"{term}"' for term in seen[:12])
+
+
 def _clawmem_available() -> bool:
     try:
         req = urllib.request.Request(f"{CLAWMEM_URL}/health")
@@ -38,17 +49,28 @@ def _clawmem_available() -> bool:
 def _clawmem_search(query: str, limit: int = 5) -> List[Dict]:
     """Search ClawMem via REST API."""
     try:
+        payload = json.dumps({
+            "query": query,
+            "limit": limit,
+            "compact": True,
+            "mode": "auto",
+        }).encode("utf-8")
         req = urllib.request.Request(
-            f"{CLAWMEM_URL}/documents?pattern={query}&limit={limit}")
+            f"{CLAWMEM_URL}/retrieve",
+            data=payload,
+            headers={"content-type": "application/json"},
+            method="POST",
+        )
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
-            results = data.get("documents", [])
+            results = data.get("results", [])
             return [{
                 "turn_id": r.get("docid", ""),
                 "agent": "clawmem",
-                "raw_text": r.get("body", "")[:300],
+                "raw_text": (r.get("snippet") or r.get("body") or r.get("content") or "")[:600],
                 "title": r.get("title", ""),
-                "score": 0.5,
+                "score": float(r.get("score", 0.0) or 0.0),
+                "path": r.get("path", ""),
                 "source": "warm",
             } for r in results]
     except Exception:
@@ -65,24 +87,44 @@ def _hot_search(query: str, limit: int = 5) -> List[Dict]:
         conn = sqlite3.connect(str(VAULT))
         conn.row_factory = sqlite3.Row
 
-        # Search turns via FTS5
+        # Search turns via FTS5. The FTS table stores only turn_id/raw_text; join
+        # back to turns for agent/session metadata.
         try:
+            fts = _fts_query(query)
+            if not fts:
+                raise sqlite3.OperationalError("empty fts query")
             rows = conn.execute("""
-                SELECT turn_id, agent, raw_text, created_at
-                FROM turns
-                WHERE turns MATCH ?
+                SELECT t.turn_id, t.agent, t.raw_text, t.created_at, bm25(turns_fts) AS rank
+                FROM turns_fts
+                JOIN turns t ON t.rowid = turns_fts.rowid
+                WHERE turns_fts MATCH ?
                 ORDER BY rank LIMIT ?
-            """, (query, limit)).fetchall()
+            """, (fts, limit)).fetchall()
             for r in rows:
                 results.append({
                     "turn_id": r["turn_id"],
                     "agent": r["agent"],
                     "raw_text": r["raw_text"],
-                    "score": 0.5,
+                    "score": 1.0 / (1.0 + abs(float(r["rank"] or 0.0))),
                     "source": "hot",
                 })
         except sqlite3.OperationalError:
-            pass
+            like_terms = [w for w in re.findall(r"[A-Za-z0-9_]+", query.lower()) if len(w) > 2][:5]
+            for term in like_terms:
+                rows = conn.execute("""
+                    SELECT turn_id, agent, raw_text, created_at
+                    FROM turns
+                    WHERE lower(raw_text) LIKE ?
+                    ORDER BY created_at DESC LIMIT ?
+                """, (f"%{term}%", limit)).fetchall()
+                for r in rows:
+                    results.append({
+                        "turn_id": r["turn_id"],
+                        "agent": r["agent"],
+                        "raw_text": r["raw_text"],
+                        "score": 0.35,
+                        "source": "hot",
+                    })
 
         # Search hot memories (keyword match)
         rows = conn.execute("SELECT * FROM hot_memories").fetchall()
@@ -113,20 +155,41 @@ def _wiki_search(query: str, limit: int = 5) -> List[Dict]:
     try:
         conn = sqlite3.connect(str(VAULT))
         conn.row_factory = sqlite3.Row
+        fts = _fts_query(query)
+        if not fts:
+            return []
         rows = conn.execute("""
             SELECT title, content, category, path
             FROM wiki_pages
             WHERE wiki_pages MATCH ?
             ORDER BY rank LIMIT ?
-        """, (query, limit)).fetchall()
+        """, (fts, limit)).fetchall()
         conn.close()
         return [{
             "turn_id": r["path"],
             "agent": "wiki",
-            "raw_text": r["content"][:200],
+            "raw_text": r["content"][:600],
             "title": r["title"],
             "score": 0.7,
             "source": "wiki",
+        } for r in rows]
+    except Exception:
+        return []
+
+
+def _cold_search(query: str, limit: int = 5) -> List[Dict]:
+    """Search local cold archive fallback."""
+    try:
+        from aaa_memory.retrieval.cold import search_archive
+
+        rows = search_archive(query, limit=limit)
+        return [{
+            "turn_id": r.get("turn_id", ""),
+            "agent": r.get("agent", "archive"),
+            "raw_text": r.get("raw_text", "")[:600],
+            "title": r.get("project", ""),
+            "score": float(r.get("score", 0.0) or 0.0),
+            "source": "cold",
         } for r in rows]
     except Exception:
         return []
@@ -243,6 +306,13 @@ def search(query: str, limit: int = 5, intent: Optional[str] = None, **kwargs) -
         warm = _clawmem_search(query, limit)
         if warm:
             all_results.append(warm)
+
+    # Cold archive fallback. Prefer it for archival queries, but include it for
+    # ambiguous searches so old facts can still surface when hot/warm are thin.
+    if intent in {"archival", "ambiguous"}:
+        cold = _cold_search(query, limit)
+        if cold:
+            all_results.append(cold)
 
     if not all_results:
         return []
