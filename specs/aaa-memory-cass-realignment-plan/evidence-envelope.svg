@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680" role="img" aria-labelledby="title desc">
+  <title id="title">Evidence envelope</title>
+  <desc id="desc">A diagram of source adapters normalizing vault, cass, wiki, graph, clawmem, and cold archive results into evidence items.</desc>
+  <defs>
+    <style>
+      .bg{fill:#070b12}.source{fill:#111826;stroke:#566b86;stroke-width:2}.core{fill:#101f1a;stroke:#76d39d;stroke-width:3}.field{fill:#18261f;stroke:#d0b05f;stroke-width:1.5}.txt{font-family:Verdana,Geneva,sans-serif;fill:#f0f6ef}.h{font-size:25px;font-weight:700}.m{font-size:16px;font-weight:700}.s{font-size:12px;fill:#bfccc4}.arrow{stroke:#76d39d;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#76d39d"/></marker>
+  </defs>
+  <rect class="bg" width="1280" height="680"/>
+  <text class="txt h" x="54" y="54">Canonical evidence envelope</text>
+  <text class="txt s" x="54" y="84">Every source becomes the same auditable object before fusion, ranking, prompt injection, or wiki compilation.</text>
+
+  <rect class="source" x="72" y="140" width="160" height="62" rx="8"/><text class="txt m" x="116" y="176">Vault</text>
+  <rect class="source" x="72" y="230" width="160" height="62" rx="8"/><text class="txt m" x="118" y="266">Cass</text>
+  <rect class="source" x="72" y="320" width="160" height="62" rx="8"/><text class="txt m" x="118" y="356">Wiki</text>
+  <rect class="source" x="72" y="410" width="160" height="62" rx="8"/><text class="txt m" x="104" y="446">ClawMem</text>
+  <rect class="source" x="72" y="500" width="160" height="62" rx="8"/><text class="txt m" x="112" y="536">Graph</text>
+
+  <rect class="core" x="370" y="132" width="520" height="420" rx="16"/>
+  <text class="txt h" x="418" y="178">EvidenceItem</text>
+  <text class="txt s" x="418" y="206">Normalized contract for retrieval quality and auditability</text>
+  <rect class="field" x="418" y="236" width="186" height="42" rx="6"/><text class="txt s" x="444" y="262">source + evidence_type</text>
+  <rect class="field" x="628" y="236" width="210" height="42" rx="6"/><text class="txt s" x="654" y="262">title + excerpt</text>
+  <rect class="field" x="418" y="298" width="186" height="42" rx="6"/><text class="txt s" x="444" y="324">citation + session_id</text>
+  <rect class="field" x="628" y="298" width="210" height="42" rx="6"/><text class="txt s" x="654" y="324">project + agent</text>
+  <rect class="field" x="418" y="360" width="186" height="42" rx="6"/><text class="txt s" x="444" y="386">score + confidence</text>
+  <rect class="field" x="628" y="360" width="210" height="42" rx="6"/><text class="txt s" x="654" y="386">freshness + warnings</text>
+  <rect class="field" x="418" y="422" width="186" height="42" rx="6"/><text class="txt s" x="444" y="448">retrieval_mode</text>
+  <rect class="field" x="628" y="422" width="210" height="42" rx="6"/><text class="txt s" x="654" y="448">token_cost</text>
+
+  <rect class="source" x="1030" y="176" width="182" height="76" rx="8"/><text class="txt m" x="1068" y="210">RRF fusion</text><text class="txt s" x="1068" y="232">rank and pack</text>
+  <rect class="source" x="1030" y="302" width="182" height="76" rx="8"/><text class="txt m" x="1068" y="336">Prompt context</text><text class="txt s" x="1068" y="358">bounded injection</text>
+  <rect class="source" x="1030" y="428" width="182" height="76" rx="8"/><text class="txt m" x="1068" y="462">Wiki compiler</text><text class="txt s" x="1068" y="484">cited durable pages</text>
+
+  <path class="arrow" d="M232 171 L366 238"/>
+  <path class="arrow" d="M232 261 L366 298"/>
+  <path class="arrow" d="M232 351 L366 352"/>
+  <path class="arrow" d="M232 441 L366 414"/>
+  <path class="arrow" d="M232 531 L366 476"/>
+  <path class="arrow" d="M890 342 L1026 214"/>
+  <path class="arrow" d="M890 342 L1026 340"/>
+  <path class="arrow" d="M890 342 L1026 466"/>
+</svg>

@@ -18,11 +18,14 @@
 git clone https://github.com/aaaronmiller/aaa-memory.git ~/code/aaa-memory
 cd ~/code/aaa-memory && pip install -e .
 
-# 2. Plugin is auto-discovered — just set provider
+# 2. Install Cass session search and refresh cron
+#    See "Cass session search setup" below.
+
+# 3. Plugin is auto-discovered — just set provider
 # Add to ~/.hermes/config.yaml under memory:
 #   provider: aaa-memory
 
-# 3. Restart gateway
+# 4. Restart gateway
 hermes gateway restart
 ```
 
@@ -33,12 +36,15 @@ hermes gateway restart
 git clone https://github.com/aaaronmiller/aaa-memory.git ~/code/aaa-memory
 cd ~/code/aaa-memory && pip install -e .
 
-# 2. Add to ~/.claude/CLAUDE.md:
+# 2. Install Cass session search and refresh cron
+#    See "Cass session search setup" below.
+
+# 3. Add to ~/.claude/CLAUDE.md:
 #    ## aaa-memory
 #    python3 ~/code/aaa-memory/scripts/mem.py recall "<query>" --limit 6
 #    To store: python3 ~/code/aaa-memory/scripts/mem.py save "<fact>" --source claude-code
 
-# 3. Optional: start MCP server for tool access
+# 4. Optional: start MCP server for tool access
 #    Add to ~/.claude/settings.json mcpServers:
 #    "aaa-memory": { "command": "python3", "args": ["-m", "aaa_memory.mcp"] }
 ```
@@ -50,7 +56,10 @@ cd ~/code/aaa-memory && pip install -e .
 git clone https://github.com/aaaronmiller/aaa-memory.git ~/code/aaa-memory
 cd ~/code/aaa-memory && pip install -e .
 
-# 2. Pi auto-discovers skills in ~/.pi/agent/skills/
+# 2. Install Cass session search and refresh cron
+#    See "Cass session search setup" below.
+
+# 3. Pi auto-discovers skills in ~/.pi/agent/skills/
 #    The goal-loop skill is already installed.
 #    For memory access, add to your AGENTS.md:
 #    ## Memory
@@ -64,7 +73,10 @@ cd ~/code/aaa-memory && pip install -e .
 git clone https://github.com/aaaronmiller/aaa-memory.git ~/code/aaa-memory
 cd ~/code/aaa-memory && pip install -e .
 
-# 2. Add to your agent's system prompt or config:
+# 2. Install Cass session search and refresh cron
+#    See "Cass session search setup" below.
+
+# 3. Add to your agent's system prompt or config:
 #    ## Persistent Memory
 #    Search: python3 ~/code/aaa-memory/scripts/mem.py recall "<query>"
 #    Store:  python3 ~/code/aaa-memory/scripts/mem.py save "<fact>" --source <agent-name>
@@ -76,10 +88,55 @@ cd ~/code/aaa-memory && pip install -e .
 # Generic install
 pip install -e .
 
+# Install Cass session search and refresh cron.
+# See "Cass session search setup" below.
+
 # Use the CLI directly:
 python3 ~/code/aaa-memory/scripts/mem.py recall "what did we decide about X?"
 python3 ~/code/aaa-memory/scripts/mem.py save "user prefers dark mode" --tags preference
 ```
+
+## Cass session search setup
+
+Cass is required for raw coding-agent session evidence. `aaa-memory` uses its own vault for durable memory, while Cass keeps historical agent transcripts indexed and searchable.
+
+Install Cass:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/coding_agent_session_search/main/install.sh?$(date +%s)" \
+  | bash -s -- --easy-mode --verify
+```
+
+Initialize or refresh the Cass index:
+
+```bash
+cass triage --json
+cass index --json --no-progress-events --data-dir "$HOME/.local/share/coding-agent-search"
+```
+
+Install the four-times-daily refresh cron job:
+
+```bash
+CASS_BIN="$(command -v cass)"
+mkdir -p "$HOME/.cache/aaa-memory/logs"
+( crontab -l 2>/dev/null | grep -v 'aaa-memory cass refresh'; \
+  printf '0 */6 * * * %s index --json --no-progress-events --data-dir "$HOME/.local/share/coding-agent-search" >> "$HOME/.cache/aaa-memory/logs/cass-index.log" 2>&1 # aaa-memory cass refresh\n' "$CASS_BIN" ) | crontab -
+```
+
+Verify:
+
+```bash
+cass triage --json
+crontab -l | grep 'aaa-memory cass refresh'
+```
+
+Optional semantic refinement:
+
+```bash
+cass models install --model all-minilm-l6-v2
+```
+
+Semantic models are explicit opt-in. Without them, Cass remains usable through lexical search and reports fallback metadata in robot output.
 
 ## Architecture
 
@@ -95,6 +152,8 @@ python3 ~/code/aaa-memory/scripts/mem.py save "user prefers dark mode" --tags pr
 │ + FTS5   │  → skill create  │  (386 docs indexed)             │
 │ (11 mem) │  → improve       │                                  │
 ├──────────┴──────────────────┴──────────────────────────────────┤
+│       Cass raw session evidence, refreshed by cron every 6h      │
+├─────────────────────────────────────────────────────────────────┤
 │                    Agent Integrations                           │
 │  Hermes plugin │ Claude hooks │ MCP server │ CLI │ Pi skills   │
 └─────────────────────────────────────────────────────────────────┘
@@ -107,6 +166,8 @@ python3 ~/code/aaa-memory/scripts/mem.py save "user prefers dark mode" --tags pr
 | Vault (turns, memories, wiki pages) | `~/.cache/aaa-memory/vault.sqlite` | SQLite + FTS5 |
 | Wiki pages (filesystem) | `~/ai-wiki/pages/` | Markdown + YAML frontmatter |
 | Raw intake | `~/ai-wiki/raw/` | Any file |
+| Cass session index | `~/.local/share/coding-agent-search` | Cass SQLite + derived search assets |
+| Cass refresh log | `~/.cache/aaa-memory/logs/cass-index.log` | Cron output |
 | ClawMem index | `~/.cache/clawmem/index.sqlite` | SQLite + FTS |
 | Hot memories | `vault.sqlite → hot_memories` | JSON tags, pinned flag |
 | Skill patterns | `~/ai-wiki/.meta/skill_patterns.json` | JSON |
@@ -147,6 +208,16 @@ aaa-memory report                # System status report
 aaa-memory search "query"        # Search across all tiers
 aaa-memory audit                 # Run session discovery
 ```
+
+### Cass session evidence
+
+```bash
+cass triage --json
+cass search "query" --robot --robot-meta --fields summary --limit 5
+cass pack "query" --robot --max-tokens 12000 --limit 40
+```
+
+Do not run bare `cass` from automation. Bare `cass` opens the interactive TUI.
 
 ### MCP Tools (for Claude Code, Hermes, or any MCP client)
 

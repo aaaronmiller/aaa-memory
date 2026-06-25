@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="620" viewBox="0 0 1280 620" role="img" aria-labelledby="title desc">
+  <title id="title">Implementation roadmap</title>
+  <desc id="desc">A phased implementation roadmap from stabilization through cass adapter, retrieval rebuild, dream compilation, graph layer, cold archive, and final validation.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f6f8f4}.step{fill:#fff;stroke:#24312b;stroke-width:2}.done{fill:#e6f0e7;stroke:#2f684f;stroke-width:2}.later{fill:#e9eef7;stroke:#325983;stroke-width:2}.text{font-family:Arial,Helvetica,sans-serif;fill:#1f2824}.h{font-size:24px;font-weight:700}.m{font-size:15px;font-weight:700}.s{font-size:12px}.arrow{stroke:#24312b;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#24312b"/></marker>
+  </defs>
+  <rect class="bg" width="1280" height="620"/>
+  <text class="text h" x="54" y="54">Roadmap: correct quality first, then expand capability</text>
+  <text class="text s" x="54" y="82">The order prevents new archival volume from amplifying broken retrieval, duplicate schemas, or uncited generated memory.</text>
+
+  <rect class="step" x="58" y="140" width="170" height="150" rx="8"/>
+  <text class="text m" x="82" y="174">Phase 1</text>
+  <text class="text s" x="82" y="202">Stabilize tests</text>
+  <text class="text s" x="82" y="224">lazy imports</text>
+  <text class="text s" x="82" y="246">compileall</text>
+  <text class="text s" x="82" y="268">baseline health</text>
+
+  <rect class="step" x="266" y="140" width="170" height="150" rx="8"/>
+  <text class="text m" x="290" y="174">Phase 2</text>
+  <text class="text s" x="290" y="202">Canonical schemas</text>
+  <text class="text s" x="290" y="224">evidence envelope</text>
+  <text class="text s" x="290" y="246">source roles</text>
+  <text class="text s" x="290" y="268">trust policy</text>
+
+  <rect class="done" x="474" y="140" width="170" height="150" rx="8"/>
+  <text class="text m" x="498" y="174">Phase 3</text>
+  <text class="text s" x="498" y="202">Cass adapter</text>
+  <text class="text s" x="498" y="224">triage/search/pack</text>
+  <text class="text s" x="498" y="246">fallback metadata</text>
+  <text class="text s" x="498" y="268">redaction guard</text>
+
+  <rect class="done" x="682" y="140" width="170" height="150" rx="8"/>
+  <text class="text m" x="706" y="174">Phase 4</text>
+  <text class="text s" x="706" y="202">Retrieval rebuild</text>
+  <text class="text s" x="706" y="224">planner</text>
+  <text class="text s" x="706" y="246">RRF fusion</text>
+  <text class="text s" x="706" y="268">token budget</text>
+
+  <rect class="done" x="890" y="140" width="170" height="150" rx="8"/>
+  <text class="text m" x="914" y="174">Phase 5</text>
+  <text class="text s" x="914" y="202">Dream/wiki</text>
+  <text class="text s" x="914" y="224">compile with citations</text>
+  <text class="text s" x="914" y="246">anti echo checks</text>
+  <text class="text s" x="914" y="268">audit reports</text>
+
+  <rect class="later" x="370" y="382" width="170" height="150" rx="8"/>
+  <text class="text m" x="394" y="416">Phase 6</text>
+  <text class="text s" x="394" y="444">Graph layer</text>
+  <text class="text s" x="394" y="466">relationships</text>
+  <text class="text s" x="394" y="488">temporal facts</text>
+  <text class="text s" x="394" y="510">benchmark first</text>
+
+  <rect class="later" x="578" y="382" width="170" height="150" rx="8"/>
+  <text class="text m" x="602" y="416">Phase 7</text>
+  <text class="text s" x="602" y="444">Cold archive</text>
+  <text class="text s" x="602" y="466">Memvid adapter</text>
+  <text class="text s" x="602" y="488">SQLite fallback</text>
+  <text class="text s" x="602" y="510">age policies</text>
+
+  <rect class="later" x="786" y="382" width="170" height="150" rx="8"/>
+  <text class="text m" x="810" y="416">Phase 8</text>
+  <text class="text s" x="810" y="444">Integrations</text>
+  <text class="text s" x="810" y="466">MCP and hooks</text>
+  <text class="text s" x="810" y="488">docs and UX tests</text>
+  <text class="text s" x="810" y="510">release gate</text>
+
+  <path class="arrow" d="M228 215 L262 215"/>
+  <path class="arrow" d="M436 215 L470 215"/>
+  <path class="arrow" d="M644 215 L678 215"/>
+  <path class="arrow" d="M852 215 L886 215"/>
+  <path class="arrow" d="M975 290 C975 340 455 330 455 378"/>
+  <path class="arrow" d="M540 457 L574 457"/>
+  <path class="arrow" d="M748 457 L782 457"/>
+</svg>
