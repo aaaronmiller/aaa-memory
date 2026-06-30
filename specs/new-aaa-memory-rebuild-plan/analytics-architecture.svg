@@ -52,7 +52,7 @@
   <rect class="green" x="948" y="246" width="134" height="34" rx="5"/><text class="text xs" x="962" y="268">E retrieval &#215;12</text>
   <rect class="green" x="1092" y="246" width="134" height="34" rx="5"/><text class="text xs" x="1106" y="268">F ingest &#215;10</text>
   <rect class="gold" x="948" y="288" width="278" height="34" rx="5"/><text class="text xs" x="962" y="310">R reviews &#215;12 (windowed rollups)</text>
-  <text class="text xs" x="948" y="344">scopes: user + AI &#8901; 24 core ship first</text>
+  <text class="text xs" x="948" y="344">scopes: user + AI &#8901; 17 core ship first</text>
 
   <path class="arrow" d="M294 260 L336 260"/>
   <path class="arrow" d="M588 220 L630 185"/>

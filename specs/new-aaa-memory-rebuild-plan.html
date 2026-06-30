@@ -301,29 +301,27 @@
         <a href="#multi-machine">Multi-machine</a>
         <div class="nav-group">Build</div>
         <a href="#data-contracts">Data contracts</a>
+        <a href="#interfaces">Interfaces &amp; rigor</a>
+        <a href="#security">Security &amp; lifecycle</a>
         <a href="#architecture">Target architecture</a>
         <a href="#deep-audit">Deep audit</a>
         <a href="#divergence-dossier">Divergence dossier</a>
         <a href="#implementation-spec">Implementation spec</a>
         <a href="#roadmap">Roadmap</a>
-        <a href="#work-packages">Work packages</a>
         <a href="#task-list">Task list &amp; file tree</a>
         <div class="nav-group">Audit &amp; ops</div>
         <a href="#rationale">Rationale</a>
         <a href="#decisions">Open decisions</a>
         <a href="#operations">Operations</a>
         <a href="#test-strategy">Test strategy</a>
-        <a href="#migration">Migration</a>
         <a href="#pathway-decision">Path choice</a>
-        <a href="#appendix-modify-existing">Modify appendix</a>
-        <a href="#appendix-greenfield">Greenfield appendix</a>
         <a href="#audit-appendix">Requirement matrix</a>
         <a href="#engineering-blueprint">Blueprints</a>
+        <div class="nav-group">Stories &amp; reference</div>
         <a href="#stories">User stories</a>
         <a href="#future">Future goals</a>
         <a href="#glossary">Glossary</a>
         <a href="#final-audit">Final audit frame</a>
-        <a href="#command-cookbook">Commands</a>
         <a href="#verification">Verification</a>
       </div>
     </nav>
@@ -395,6 +393,7 @@
 
         <div class="quote">The tricky parts, called out explicitly so the plan does not skim them: the refined dreamtime compute DAG, the ingestion and retrieval DAGs, the specific monitoring and analytics, and the metadata schema for all layers. Those four get the deepest treatment in this document.</div>
         <p class="note">Traceability: every section header below names the goals it satisfies, and the <a href="#audit-appendix">requirement matrix</a> maps all eighteen goals to concrete files, acceptance gates, and tests so a third-party reviewer can confirm nothing was dropped.</p>
+        <div class="quote">How to read this. The spine is <strong>four engines on one substrate</strong>: skim the <a href="#system-map">system map</a> first for the whole picture. A <strong>reviewer</strong> can go map &rarr; <a href="#stories">user stories</a> (concrete acceptance scenarios) &rarr; <a href="#audit-appendix">requirement matrix</a> &rarr; <a href="#final-audit">final audit frame</a>. A <strong>builder</strong> goes <a href="#data-contracts">data contracts</a> &rarr; <a href="#interfaces">interfaces &amp; rigor</a> &rarr; <a href="#task-list">task list &amp; file tree</a>. Coined terms (dreamtime, gold standard, multi-bitrate, temporal correlation) are defined in the <a href="#glossary">glossary</a>.</div>
       </section>
       <section id="system-map">
         <div class="kicker">System map &middot; G1-G18</div>
@@ -469,7 +468,7 @@ flowchart TB
             <tr><td>Dreamtime is currently weak.</td><td><span class="status verified">stated requirement</span></td><td>Named in the brief; G2 replaces the thin loop with a DAG, gold standards, surfaces, and budget control.</td></tr>
             <tr><td>Install and setup are hard.</td><td><span class="status verified">stated requirement</span></td><td>Named in the brief; G11/G17 add a <code>--doctor</code> and preconfigured per-surface plugins.</td></tr>
             <tr><td>Cass is installed locally and version-managed.</td><td><span class="status verified">verified prior</span></td><td><code>cass api-version --json</code> previously returned crate <code>0.6.14</code>; upstream listed <code>v0.6.17</code>. Plan retains a Cass update check.</td></tr>
-            <tr><td>Full Python test suite fails on eager optional-provider imports.</td><td><span class="status verified">verified prior</span></td><td><code>pytest -q</code> failed during collection because <code>openai</code> imported eagerly via classifier modules. Repaired in Work Package 1.</td></tr>
+            <tr><td>Full Python test suite fails on eager optional-provider imports.</td><td><span class="status verified">verified prior</span></td><td><code>pytest -q</code> failed during collection because <code>openai</code> imported eagerly via classifier modules. Repaired in Phase 0 (ticket AD-01).</td></tr>
             <tr><td>Quota maximization needs the proxy as source of truth.</td><td><span class="status opinion">opinion</span></td><td>Hardcoding model/provider lists would rot. The proxy already holds live quota and config, so the quota engine should read it rather than maintain a parallel registry.</td></tr>
             <tr><td>Memvid alone is insufficient as the memory architecture.</td><td><span class="status opinion">opinion</span></td><td>Cold archival video-RAG is one tier. The brief asks for multi-bitrate plus SQL joins plus NoSQL metadata plus four RAG modes &mdash; a composite, not a single store.</td></tr>
             <tr><td>Raw transcript text is evidence, not instruction.</td><td><span class="status opinion">opinion</span></td><td>Historical sessions contain stale commands and failed approaches; safe as cited evidence, unsafe as live fact. Preserved from the prior plan.</td></tr>
@@ -508,7 +507,8 @@ class QuotaWindow:
             <tr><td>Account</td><td>Record actual spend per window, model, project, and task back to analytics.</td><td>Closes the loop: G3 graphs quota utilization and waste over time.</td></tr>
           </tbody>
         </table>
-        <div class="quote">Success metric for G1: quota utilization percentage per window, per period, trending toward 100% of free and about-to-reset quota &mdash; with zero impact on interactive latency. This is a headline analytics graph, not a hidden internal counter.</div>
+        <div class="quote">Success metric for G1: a measurable target of &ge;80% utilization of free and about-to-reset quota per period, while keeping p95 interactive latency within a configured budget of baseline (background work yields to foreground). This is a headline analytics graph with an explicit tradeoff, not an unfalsifiable "100% with zero impact" claim.</div>
+        <p class="note">Assumption and fallback: not every provider exposes remaining/limit/reset telemetry &mdash; many free tiers do not. Where the proxy cannot supply authoritative quota, the engine estimates remaining headroom from local burn-rate accounting and marks the window <code>inferred</code> rather than authoritative, so dreamtime never over-commits against a guess. See the <a href="#interfaces">proxy contract</a>.</p>
         <p>The engine interacts with the task board (G4) so that "spendable budget" is matched to "work worth doing." A free Cerebras window resetting in two hours is paired with a backlog of refinement tasks sized to fit. The pairing &mdash; budget to work &mdash; is the handoff to dreamtime.</p>
       </section>
 
@@ -600,7 +600,7 @@ class DreamCycle:
 
         <h3>Monitoring, history, and prediction</h3>
         <p>Dreamtime keeps a full history of past activity: every <code>DreamCycle</code> with its token spend, quota-usage percentage, quality delta, model, and outcome. This feeds G3 directly &mdash; the analytics surface answers "what did the autonomous agent get done last night, and was it worth the quota?" from both the AI scope (cycles, tokens, promotions) and the user scope (which of my documents got better). The prediction stage forecasts user needs from board and behavior signals and pre-stages artifacts so they exist before the user asks for them (see story 12).</p>
-        <div class="quote">Definition of done for G2: a configured user can leave the machine overnight and wake to a) measurably improved real artifacts, b) near-100% utilization of free/expiring quota, c) a readable log of exactly what changed, why, at what cost, and d) at least one correctly pre-staged artifact they had not yet requested.</div>
+        <div class="quote">Definition of done for G2: a configured user can leave the machine overnight and wake to a) measurably improved real artifacts (positive gold-standard delta past threshold), b) &ge;80% utilization of free/expiring quota, c) a readable log of exactly what changed, why, at what cost, and d) best-effort pre-staged artifacts &mdash; tracked by a prediction hit-rate, accepting that many pre-staged drafts go unused and are budget-capped.</div>
       </section>
       <section id="analytics">
         <div class="kicker">Analytics &amp; webUX &middot; G3 &middot; tricky part</div>
@@ -636,7 +636,7 @@ class AnalyticsEvent:
       <section id="graph-catalog">
         <div class="kicker">Graph catalog &middot; G3</div>
         <h2>The full catalog: 84 graphs, each with the decision it changes.</h2>
-        <p class="section-intro">This is the complete enumeration the brief asked for. Each entry names the graph, its scope, and &mdash; in green &mdash; the action it is meant to change. Built in three tiers: ship the 24 marked core first, then the rest. Counts per group are shown so coverage is auditable.</p>
+        <p class="section-intro">This is the complete enumeration the brief asked for. Each entry names the graph, its scope, and &mdash; in green &mdash; the action it is meant to change. Built in three tiers: ship the 17 marked core first, then the rest. Counts per group are shown so coverage is auditable.</p>
 
         <h4>A &middot; Quota &amp; cost &mdash; 12 graphs (G1,G3)</h4>
         <div class="catalog">
@@ -651,7 +651,7 @@ class AnalyticsEvent:
           <div class="gcard"><span class="gnum">A09</span><b>Interactive vs background split</b><span class="scope user">user</span><span class="act">&rarr; adjust reserved headroom</span></div>
           <div class="gcard"><span class="gnum">A10</span><b>Provider reliability vs spend</b><span class="scope ai">ai</span><span class="act">&rarr; drop flaky providers</span></div>
           <div class="gcard"><span class="gnum">A11</span><b>Quota heatmap (hour x provider)</b><span class="scope ai">ai</span><span class="act">&rarr; align work to free hours</span></div>
-          <div class="gcard"><span class="gnum">A12</span><b>Cumulative value reclaimed</b><span class="scope user">user</span><span class="act">&rarr; justify the system</span></div>
+          <div class="gcard"><span class="gnum">A12</span><b>Cumulative value reclaimed</b><span class="scope user">user</span><span class="act">&rarr; decide whether to keep paying for it</span></div>
         </div>
 
         <h4>B &middot; Dreamtime output &mdash; 12 graphs (G2,G3)</h4>
@@ -696,7 +696,7 @@ class AnalyticsEvent:
           <div class="gcard"><span class="gnum">D04</span><b>Session length distribution</b><span class="scope user">user</span><span class="act">&rarr; plan deep-work blocks</span></div>
           <div class="gcard"><span class="gnum">D05</span><b>Prompt pattern clusters</b><span class="scope user">user</span><span class="act">&rarr; build reusable prompts</span></div>
           <div class="gcard"><span class="gnum">D06</span><b>Repeated-question detector</b><span class="scope ai">ai</span><span class="act">&rarr; write a wiki page</span></div>
-          <div class="gcard"><span class="gnum">D07</span><b>Topic focus over time</b><span class="scope user">user</span><span class="act">&rarr; notice drift</span></div>
+          <div class="gcard"><span class="gnum">D07</span><b>Topic focus over time</b><span class="scope user">user</span><span class="act">&rarr; refocus effort on the drifting topic</span></div>
           <div class="gcard"><span class="gnum">D08</span><b>Day-of-week productivity</b><span class="scope user">user</span><span class="act">&rarr; schedule hard work well</span></div>
           <div class="gcard"><span class="gnum">D09</span><b>Idle-streak detector</b><span class="scope user">user</span><span class="act">&rarr; let dreamtime take over</span></div>
           <div class="gcard"><span class="gnum">D10</span><b>Cross-project correlation</b><span class="scope user">user</span><span class="act">&rarr; merge related efforts</span></div>
@@ -747,9 +747,9 @@ class AnalyticsEvent:
           <div class="gcard"><span class="gnum">R09</span><b>Yearly knowledge growth</b><span class="scope user">user</span><span class="act">&rarr; plan publishing</span></div>
           <div class="gcard"><span class="gnum">R10</span><b>Weekly habit scorecard</b><span class="scope user">user</span><span class="act">&rarr; fix one habit</span></div>
           <div class="gcard"><span class="gnum">R11</span><b>Monthly model effectiveness</b><span class="scope ai">ai</span><span class="act">&rarr; rotate models</span></div>
-          <div class="gcard"><span class="gnum">R12</span><b>Year-over-year leverage</b><span class="scope user">user</span><span class="act">&rarr; measure compounding</span></div>
+          <div class="gcard"><span class="gnum">R12</span><b>Year-over-year leverage</b><span class="scope user">user</span><span class="act">&rarr; set next year's leverage targets</span></div>
         </div>
-        <p class="note">Total: 84 graphs across six groups (A12, B12, C14, D12, E12, F10, R12). 24 marked <code>core</code> ship in tier 1. The catalog scales past 100 as per-tool granular variants (per-agent clones of E and B groups) are generated automatically from the same event store &mdash; no new code, only new <code>dims</code> filters.</p>
+        <p class="note">Total: 84 graphs across seven groups (A12, B12, C14, D12, E12, F10, R12). 17 marked <code>core</code> ship in tier 1. The catalog scales past 100 as per-tool granular variants (per-agent clones of E and B groups) are generated automatically from the same event store &mdash; no new code, only new <code>dims</code> filters.</p>
       </section>
 
       <section id="tasks">
@@ -881,7 +881,7 @@ flowchart TB
   classDef st fill:#0e1c16,stroke:#7ee0a1,color:#7ee0a1;
         </pre>
         <div class="grid two">
-          <div class="card"><h3>CLI-first retrieval (G8)</h3><p>Why not MCP-only: an MCP tool returns a fixed shape. A CLI lets an agent or operator request a precise slice &mdash; "only graph facts about project X since June, as JSON" &mdash; and pipe it. MCP remains available as a wrapper over the same planner, so both surfaces agree.</p></div>
+          <div class="card"><h3>CLI-first retrieval (G8)</h3><p>The real differentiator is composability, not "shape": both the CLI and MCP are thin clients over the same retrieval daemon socket, so there is no per-query process spawn. The CLI adds pipeability &mdash; "only graph facts about project X since June, as JSON" piped into another tool. Contract split: <code>aaa get --json</code> emits <em>raw source rows</em> for precise slicing; normalized <code>recall</code> emits fused <code>EvidenceItem</code> with provenance. Both honor a stated contract; neither is ambiguous.</p></div>
           <div class="card"><h3>Temporal search (G9)</h3><p>Some items belong to the same effort but share no vocabulary. Temporal usage correlation &mdash; "these three files and that transcript were all touched in the same 40-minute window" &mdash; links them. This complements Cass rather than duplicating its lexical/semantic search.</p></div>
         </div>
         <h3>Pipeline audit (G12)</h3>
@@ -904,8 +904,8 @@ flowchart TB
         </table>
         <h3>Four RAG modes</h3>
         <div class="grid four">
-          <div class="card"><h3>Semantic</h3><p>Meaning-based retrieval over embeddings; finds conceptually related content regardless of wording.</p></div>
-          <div class="card"><h3>Vector</h3><p>Raw nearest-neighbor similarity with metadata pre-filtering; the fast path.</p></div>
+          <div class="card"><h3>Vector</h3><p>Pure approximate-nearest-neighbor over embeddings with metadata pre-filtering; the fast path, query embedded as-is.</p></div>
+          <div class="card"><h3>Semantic</h3><p>Vector search plus query transformation &mdash; expansion / HyDE rewrite before the ANN lookup &mdash; for conceptual recall when the query wording differs from the stored text. (A fifth mode, <code>lexical</code>, is the BM25/Cass fallback used when embeddings are unavailable.)</p></div>
           <div class="card"><h3>Contextual</h3><p>Chunks carry surrounding context (document, project, time) so retrieved fragments stay interpretable.</p></div>
           <div class="card"><h3>Agentic</h3><p>An agent plans multi-step retrieval &mdash; query, read, refine query, join &mdash; for hard questions a single shot misses.</p></div>
         </div>
@@ -1095,6 +1095,98 @@ aaa analytics serve        # G3 webUX</code></pre>
         </div>
       </section>
 
+      <section id="interfaces">
+        <div class="kicker">Interfaces &amp; rigor specs</div>
+        <h2>The four under-specified mechanisms, pinned down.</h2>
+        <p class="section-intro">Adversarial review flagged that several confident "what" statements lacked an implementable "how." This section closes the four highest-signal gaps so <code>proxy_client</code>, the ingest daemon, dreamtime scoring, and temporal correlation can actually be built and tested.</p>
+
+        <h3>1. Proxy API contract (G1)</h3>
+        <p>The quota engine reads the proxy over a local HTTP endpoint (default <code>http://127.0.0.1:&lt;port&gt;/quota</code>; the reference implementation targets a LiteLLM-style broker, but any source returning the shape below works). Auth is a local token from config. The client maps the raw response field-by-field onto <code>QuotaWindow</code>; missing fields degrade gracefully.</p>
+        <pre><code># GET /quota -> 200
+{ "windows": [
+  { "provider":"groq", "model":"llama-3.3-70b", "tier":"free",
+    "limit":14400, "used":2310, "remaining":12090,        # remaining/limit OPTIONAL
+    "resets_at":"2026-07-01T00:00:00Z", "reset_cadence":"daily",
+    "unit":"requests", "cost_per_unit":0.0 } ] }
+
+# Degradation rules (no field invented):
+#   remaining missing  -> estimate = limit - local_burn_since_reset; mark inferred=true
+#   resets_at missing  -> use reset_cadence heuristic; mark inferred=true
+#   provider absent    -> excluded from spend ranking, logged
+</code></pre>
+
+        <h3>2. Resident ingest/recall daemon IPC (fixes the primary defect)</h3>
+        <p>Hooks become thin clients of one resident daemon over a Unix domain socket (<code>$XDG_RUNTIME_DIR/aaa-memory.sock</code>; local TCP fallback on platforms without it). Newline-delimited JSON requests; the daemon owns all models and indexes so per-keystroke hook cost is a socket write, not a model load.</p>
+        <table>
+          <thead><tr><th>Aspect</th><th>Spec</th></tr></thead>
+          <tbody>
+            <tr><td>Message</td><td><code>{op:"ingest|recall|inject", payload, req_id}</code> &rarr; <code>{req_id, ok, data|error}</code>.</td></tr>
+            <tr><td>Lifecycle</td><td>Lazy-start on first client; systemd/launchd unit for autostart; restart re-reads durable state (no in-RAM-only truth).</td></tr>
+            <tr><td>Back-pressure</td><td>Bounded queue; when full, ingest returns <code>busy</code> and the client buffers to the immutable raw store for later drain &mdash; never blocks the foreground tool.</td></tr>
+            <tr><td>Budgets</td><td>Two gates: thin client RSS &lt; 50MB <em>and</em> daemon steady-state RSS &lt; a configured ceiling (default 512MB), both asserted in tests.</td></tr>
+            <tr><td>Classifier in hot path</td><td>Default is scripted rules (cheap); the classifier <em>model</em> is optional, batched, and runs as a deferred enrichment pass, not inline per item &mdash; keeping the daemon within budget.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>3. Gold-standard scoring function (G2 gate)</h3>
+        <p>Promotion depends on a numeric quality delta, so the scorer is specified, and treated as heuristic rather than ground truth.</p>
+        <pre><code>def score(candidate, gold_standard_ref) -> float:   # 0..1
+    # LLM-judge with a fixed rubric per domain; rubric dimensions are
+    # weighted and averaged. Deterministic checks (lint, tests, link
+    # validity, citation coverage) contribute where applicable.
+    ...
+# Promotion rule:
+#   promote iff score_after - score_before >= DELTA_MIN (default 0.05)
+#   AND score_after >= FLOOR (default 0.6)
+# Caveats (review-driven):
+#   - LLM self-scoring is noisy/gameable -> require the margin, not just ">",
+#   - periodic human spot-audit of a promoted sample,
+#   - track scorer reliability (agreement with audits) as its own metric (graph B-series).</code></pre>
+
+        <h3>4. Temporal correlation algorithm (G9)</h3>
+        <p>"Touched in the same window" is made precise: every ingested item records a <code>usage_at</code> timestamp per surface event (open/edit/run/query). Items are bucketed into adaptive sessions &mdash; a new bucket starts after a gap &gt; <code>SESSION_GAP</code> (default 30 min) of no activity. A temporal link is emitted between two items co-occurring in &ge; <code>K</code> buckets (default 2), scored by co-occurrence frequency and inverse bucket size, above <code>LINK_MIN</code>. This complements Cass (which supplies the raw event timestamps) rather than re-indexing transcripts.</p>
+
+        <h3>Inline rigor caveats</h3>
+        <div class="grid">
+          <div class="card"><h3>Memvid bitrate for text</h3><p>"Bitrate" = retained fidelity of a chunk's reconstruction (full text &rarr; summarized &rarr; pointer-only). High-bitrate is lossless; low is lossy and must be re-fetchable from the immutable raw store. Justify Memvid vs zstd+parquet+SQLite per a recall/cost benchmark before committing (open decision).</p></div>
+          <div class="card"><h3>Embedding migration</h3><p>Vectors are tagged with <code>embedder@dim@version</code>. Switching providers (different dim) triggers a background reindex; queries during migration run against the old index until the new one passes parity, then cut over.</p></div>
+          <div class="card"><h3>Offline mermaid</h3><p>This document's mermaid loads from a CDN, which breaks air-gapped viewing. Production: vendor mermaid locally with a pinned version + SRI hash, CDN as fallback only. Tracked in open decisions.</p></div>
+        </div>
+      </section>
+
+      <section id="security">
+        <div class="kicker">Security, privacy &amp; data lifecycle</div>
+        <h2>Access, secrets, and the right to be forgotten.</h2>
+        <p class="section-intro">Review found no security model and no deletion story for a system that ingests everything and serves a web UI exposing all of it. Both are specified here; neither is optional for a tool holding a user's complete AI history.</p>
+
+        <h3>Security model</h3>
+        <table>
+          <thead><tr><th>Surface</th><th>Control</th></tr></thead>
+          <tbody>
+            <tr><td>Analytics webUX / wiki web</td><td>Bound to localhost by default; remote access requires an auth token and TLS. No anonymous access to behavioral data.</td></tr>
+            <tr><td>At rest</td><td>Vault, cold archive, and the event store encrypted at rest (key from OS keychain); raw store permissions locked to the user.</td></tr>
+            <tr><td>Sync transport (G18)</td><td>Authenticated + encrypted channel between machines; summaries only for Cass, never raw indexes.</td></tr>
+            <tr><td>Secret detection</td><td>The <code>sensitivity</code> field is set by layered detection: regex (keys/tokens), entropy heuristics, and the classifier. Detected secrets are redacted before embedding and never published (BP6).</td></tr>
+            <tr><td>Publish path (G15)</td><td>Publishing re-checks <code>sensitivity</code>; <code>secret</code> and <code>internal</code> items are blocked from public output regardless of page selection.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Data lifecycle: retention, deletion, forgetting</h3>
+        <p>The "immutable raw store" and append-only logs are immutable for <em>integrity</em>, not <em>forever</em>. A deletion is a first-class operation that tombstones an item and propagates.</p>
+        <table>
+          <thead><tr><th>Mechanism</th><th>Behavior</th></tr></thead>
+          <tbody>
+            <tr><td>Forget</td><td><code>aaa forget &lt;id|query&gt;</code> writes a tombstone event; the item is removed from vault, vector index, SQL/NoSQL, and Memvid, and the tombstone replicates via sync so it cannot resurrect on another machine.</td></tr>
+            <tr><td>Retention / TTL</td><td>Per-tier policy: hot keeps recent + pinned; warm retains compiled knowledge; cold TTL + eviction caps unbounded Memvid growth. Policies are configurable and auditable.</td></tr>
+            <tr><td>Deprecation</td><td><code>review_state:deprecated</code> hides an item from retrieval but keeps it for audit until TTL eviction.</td></tr>
+            <tr><td>Raw store</td><td>Tombstoned raw inputs are purged on the next compaction; integrity hashes cover only live items.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Multi-store consistency</h3>
+        <p>One item spans Memvid + SQL + NoSQL + vector. Writes use the immutable raw store as the durable source of truth: a write is acknowledged once raw + metadata are committed; derived stores (vector, SQL projections, Memvid) are rebuilt idempotently from raw, so any store can be dropped and reconstructed. <code>aaa doctor --rebuild</code> performs that recovery. This makes cross-store atomicity unnecessary &mdash; raw is authoritative, the rest are caches.</p>
+      </section>
+
       <section id="architecture">
         <div class="kicker">Target architecture</div>
         <h2>Normalize everything; let the planner decide.</h2>
@@ -1159,10 +1251,8 @@ class EvidenceItem:
             <tr><td>SQLite cold fallback instead of Memvid</td><td><span class="status risk">harmful for G7</span></td><td>Replace with multi-bitrate Memvid behind an adapter.</td></tr>
             <tr><td>Graph layer postponed</td><td><span class="status opinion">acceptable</span></td><td>Sequence after evidence quality; needed for G9.</td></tr>
             <tr><td>Multiple compilers / fusion helpers</td><td><span class="status risk">harmful</span></td><td>Consolidate to one planner + one compiler.</td></tr>
-            <tr><td>Optional provider packages imported at import time</td><td><span class="status risk">harmful</span></td><td>Lazy imports; fixed in WP1 (breaks tests today).</td></tr>
+            <tr><td>Optional provider packages imported at import time</td><td><span class="status risk">harmful</span></td><td>Lazy imports; fixed in Phase 0 / AD-01 (breaks tests today).</td></tr>
             <tr><td>Parser stubs left incomplete</td><td><span class="status risk">harmful</span></td><td>Prefer Cass over bespoke parsers; finish only what Cass cannot supply.</td></tr>
-            <tr><td>Heavy Python ingest/recall hooks</td><td><span class="status risk">harmful, primary</span></td><td>Resident low-memory process; the headline rebuild fix.</td></tr>
-            <tr><td>No analytics / weak dreamtime</td><td><span class="status risk">harmful, primary</span></td><td>Build both as first-class engines (G2,G3).</td></tr>
           </tbody>
         </table>
       </section>
@@ -1201,32 +1291,12 @@ class EvidenceItem:
         <p class="section-intro">Quality gates come before intelligence. The sequence fixes the foundation (tests, resident ingest, metadata, retrieval contract), then stands up the four engines, then layers the leverage features.</p>
         <img class="diagram" src="new-aaa-memory-rebuild-plan/roadmap.svg" alt="Roadmap">
         <div class="timeline">
-          <div class="phase"><strong>Phase 0</strong><div>Restore test health, lazy imports, resident ingest/recall process. The "stop being unusable" phase.</div></div>
+          <div class="phase"><strong>Phase 0</strong><div>Restore test health, lazy imports, resident ingest/recall daemon, <em>and a minimal <code>aaa doctor</code> + one-command install</em>. The "stop being unusable" phase fixes all three usability defects (memory, tests, install) at once &mdash; the full provider matrix and plugins still land later.</div></div>
           <div class="phase"><strong>Phase 1</strong><div>Metadata schema (G5), evidence envelope, one planner + fusion, CLI <code>get</code> (G8). The substrate.</div></div>
           <div class="phase"><strong>Phase 2</strong><div>Cass adapter (G13), temporal (G9), multi-bitrate RAG (G7), embedding matrix + doctor (G11). The data plane.</div></div>
           <div class="phase"><strong>Phase 3</strong><div>Quota engine (G1) + task board (G4) + dreamtime DAG (G2). The leverage core.</div></div>
           <div class="phase"><strong>Phase 4</strong><div>Analytics event store + webUX + 84 graphs (G3); wiki web UI + publish (G15); intake skill (G16).</div></div>
           <div class="phase"><strong>Phase 5</strong><div>Multi-machine sync (G18), preconfigured plugins (G17), pipeline audit (G12), hardening.</div></div>
-        </div>
-      </section>
-
-      <section id="work-packages">
-        <div class="kicker">Work packages</div>
-        <h2>The roadmap as implementable units.</h2>
-        <p class="section-intro">Each package is independently testable and maps to goals. They are ordered by dependency, not by glamour.</p>
-        <div class="grid">
-          <div class="card"><h3>WP1 &middot; Baseline health</h3><p class="metric">Phase 0 &middot; no goal, unblocks all</p><p>Lazy provider imports, green <code>pytest</code>, resident ingest/recall daemon replacing heavy hooks.</p></div>
-          <div class="card"><h3>WP2 &middot; Metadata + envelope</h3><p class="metric">G5, retrieval contract</p><p><code>MemoryMeta</code>, <code>EvidenceItem</code>, migrations, golden fixtures.</p></div>
-          <div class="card"><h3>WP3 &middot; One planner</h3><p class="metric">G6, G8</p><p>Consolidate fusion/intent into one planner; CLI <code>get</code>; MCP wraps it.</p></div>
-          <div class="card"><h3>WP4 &middot; Cass + temporal</h3><p class="metric">G13, G9</p><p>Cass source adapter; cron+health; temporal correlation.</p></div>
-          <div class="card"><h3>WP5 &middot; RAG + embeddings</h3><p class="metric">G7, G11</p><p>Multi-bitrate Memvid, SQL/NoSQL stores, four modes; provider matrix + doctor.</p></div>
-          <div class="card"><h3>WP6 &middot; Quota engine</h3><p class="metric">G1</p><p>Proxy client, ranking, budgets, accounting.</p></div>
-          <div class="card"><h3>WP7 &middot; Task board</h3><p class="metric">G4</p><p>Cross-agent board, living specs, Cass context links, third-party bridge.</p></div>
-          <div class="card"><h3>WP8 &middot; Dreamtime</h3><p class="metric">G2</p><p>DAG engine, gold standards, surfaces, history, prediction.</p></div>
-          <div class="card"><h3>WP9 &middot; Analytics</h3><p class="metric">G3</p><p>Event store, views, webUX, 84-graph catalog (24 core first).</p></div>
-          <div class="card"><h3>WP10 &middot; Wiki + intake</h3><p class="metric">G15, G16</p><p>One compiler, web UI, publish; Obsidian intake skill.</p></div>
-          <div class="card"><h3>WP11 &middot; Sync + plugins</h3><p class="metric">G18, G17</p><p>Multi-machine sync; preconfigured per-surface plugins.</p></div>
-          <div class="card"><h3>WP12 &middot; Pipeline audit</h3><p class="metric">G12</p><p>Standing auditor; golden-query replay; feedback to planner.</p></div>
         </div>
       </section>
 
@@ -1251,7 +1321,7 @@ class EvidenceItem:
           <div class="ticket"><span class="id">AD-12</span><div>Build <code>quota.proxy_client</code>: read windows, rank, budget (G1).</div><span class="gate">gate: utilization metric live</span></div>
           <div class="ticket"><span class="id">AD-13</span><div>Build <code>tasks.board</code> + living specs + Cass context (G4).</div><span class="gate">gate: cross-agent edit test</span></div>
           <div class="ticket"><span class="id">AD-14</span><div>Build <code>dream.engine</code> DAG + <code>dream.gold</code> + surfaces (G2).</div><span class="gate">gate: promote-on-delta test</span></div>
-          <div class="ticket"><span class="id">AD-15</span><div>Build <code>analytics</code> events/views/web; ship 24 core graphs (G3).</div><span class="gate">gate: every graph has an action</span></div>
+          <div class="ticket"><span class="id">AD-15</span><div>Build <code>analytics</code> events/views/web; ship 17 core graphs (G3).</div><span class="gate">gate: every graph has an action</span></div>
           <div class="ticket"><span class="id">AD-16</span><div>One <code>wiki.compiler</code> + web UI + publish (G15).</div><span class="gate">gate: cited pages only</span></div>
           <div class="ticket"><span class="id">AD-17</span><div>Build <code>intake.skill</code> for Obsidian (G16).</div><span class="gate">gate: idempotent re-run</span></div>
           <div class="ticket"><span class="id">AD-18</span><div>Build <code>ops.sync</code> multi-machine (G18) + per-surface plugins (G17).</div><span class="gate">gate: two-node merge test</span></div>
@@ -1263,7 +1333,7 @@ class EvidenceItem:
         <div class="tickets">
           <div class="ticket"><span class="id">GF-01</span><div>Scaffold clean package per the reference tree; contracts first, no legacy.</div><span class="gate">gate: contracts compile</span></div>
           <div class="ticket"><span class="id">GF-02</span><div>Port golden fixtures from the existing repo as the parity oracle.</div><span class="gate">gate: fixtures imported</span></div>
-          <div class="ticket"><span class="id">GF-03</span><div>Implement WP2-WP12 directly against contracts (no consolidation step).</div><span class="gate">gate: per-WP gates</span></div>
+          <div class="ticket"><span class="id">GF-03</span><div>Implement all subsystems directly against contracts (no consolidation step).</div><span class="gate">gate: per-WP gates</span></div>
           <div class="ticket"><span class="id">GF-04</span><div>Run the comparison harness vs the modified repo on golden queries.</div><span class="gate">gate: parity &ge; baseline</span></div>
           <div class="ticket"><span class="id">GF-05</span><div>Cut over only if parity holds and ops cost is lower; else keep adaptation.</div><span class="gate">gate: go/no-go signed</span></div>
         </div>
@@ -1291,7 +1361,7 @@ class EvidenceItem:
 │   ├── rag/
 │   │   ├── memvid.py           # multi-bitrate cold (G7)
 │   │   ├── stores.py           # SQL (joins) + NoSQL (metadata)
-│   │   └── modes.py            # semantic | vector | contextual | agentic
+│   │   └── modes.py            # semantic | vector | contextual | agentic | lexical(fallback)
 │   ├── embed/
 │   │   └── providers.py        # local GPU/CPU + 20+ cloud (G11)
 │   ├── quota/
@@ -1403,24 +1473,10 @@ aaa analytics serve              # open the webUX</code></pre>
         <div class="quote">Golden queries are the spine: a fixed set of questions with expected sources, citations, and freshness. The pipeline audit (G12) replays them continuously, so "as good as it can be" is a tracked number (graph E01/E12).</div>
       </section>
 
-      <section id="migration">
-        <div class="kicker">Migration</div>
-        <h2>From current drift to target without losing working utility.</h2>
-        <div class="timeline">
-          <div class="phase"><strong>Step 1</strong><div>Freeze semantics, not code: capture current behavior as golden fixtures.</div></div>
-          <div class="phase"><strong>Step 2</strong><div>Add metadata + evidence models behind the existing surfaces.</div></div>
-          <div class="phase"><strong>Step 3</strong><div>Move ingest/recall into the resident daemon; hooks become clients.</div></div>
-          <div class="phase"><strong>Step 4</strong><div>Add Cass adapter beside the hook; wrap vault/wiki as sources.</div></div>
-          <div class="phase"><strong>Step 5</strong><div>Replace fusion in one entrypoint; verify on golden queries; then the rest.</div></div>
-          <div class="phase"><strong>Step 6</strong><div>Stand up engines (quota, tasks, dreamtime) reading the stable substrate.</div></div>
-          <div class="phase"><strong>Step 7</strong><div>Layer analytics, wiki web UI, intake, sync, plugins; consolidate compilers.</div></div>
-        </div>
-        <p class="note">Rollback at each step: every step is behind a flag or a thin alias; revert is a config change plus the backup. Definition of done: the 12 stories pass, the 24 core graphs are live, dreamtime promotes on delta, and <code>aaa doctor</code> is green on a clean machine.</p>
-      </section>
-
       <section id="pathway-decision">
-        <div class="kicker">Path choice</div>
+        <div class="kicker">Path choice &amp; pathway notes</div>
         <h2>Modify by default; greenfield as the measured alternative.</h2>
+        <p class="section-intro">The build <em>sequence</em> lives in the <a href="#roadmap">roadmap</a> (phases) and the <a href="#task-list">task list</a> (AD/GF tickets); this section records only the modify-vs-greenfield decision and the details unique to each pathway.</p>
         <table>
           <thead><tr><th>Criterion</th><th>Favors modify</th><th>Favors greenfield</th></tr></thead>
           <tbody>
@@ -1431,39 +1487,12 @@ aaa analytics serve              # open the webUX</code></pre>
             <tr><td>Ops cost</td><td>Lower now.</td><td>Only if modified ops cost stays high after stabilization.</td></tr>
           </tbody>
         </table>
-        <p>Decision rule: proceed modify-existing; keep the greenfield scaffold and comparison harness alive; cut over only if the parity harness shows greenfield matches behavior at lower ops cost.</p>
-      </section>
-
-      <section id="appendix-modify-existing">
-        <div class="kicker">Modify appendix</div>
-        <h2>Stabilize the current repo into the final platform.</h2>
-        <p class="section-intro">Scope: keep identity and working surfaces; fix the four defects; add the engines in dependency order (AD-01 through AD-20).</p>
-        <table>
-          <thead><tr><th>Aspect</th><th>Detail</th></tr></thead>
-          <tbody>
-            <tr><td>Sequence</td><td>AD tickets, gated on tests and the golden-query oracle.</td></tr>
-            <tr><td>First pass files</td><td><code>ingest/daemon.py</code>, <code>meta/schema.py</code>, <code>retrieval/planner.py</code>, <code>retrieval/models.py</code>, <code>cli.py get</code>.</td></tr>
-            <tr><td>Acceptance gates</td><td>Green tests; hook RSS ceiling; envelope tests; one-planner invariant.</td></tr>
-            <tr><td>Rollback</td><td>Backup + alias; per-ticket flags.</td></tr>
-            <tr><td>Risks</td><td>Hidden coupling in fusion; daemon state durability; proxy contract drift.</td></tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section id="appendix-greenfield">
-        <div class="kicker">Greenfield appendix</div>
-        <h2>Rebuild clean, prove parity, then decide.</h2>
-        <p class="section-intro">Scope: the reference tree with contracts first and no legacy, validated against the existing repo via the comparison harness (GF-01 through GF-05).</p>
-        <table>
-          <thead><tr><th>Aspect</th><th>Detail</th></tr></thead>
-          <tbody>
-            <tr><td>Constraints</td><td>Contracts before implementations; golden fixtures imported as oracle; no second product identity.</td></tr>
-            <tr><td>Reference structure</td><td>The <a href="#task-list">target file tree</a>, built directly.</td></tr>
-            <tr><td>Comparison harness</td><td>Run both builds on golden queries; compare source mix, citations, latency, token cost.</td></tr>
-            <tr><td>Cutover</td><td>Only on parity &ge; baseline and lower ops cost.</td></tr>
-            <tr><td>Risks</td><td>Re-implementation drift; effort duplication; premature cutover.</td></tr>
-          </tbody>
-        </table>
+        <p>Decision rule: proceed modify-existing; keep the greenfield scaffold and comparison harness alive; cut over only if the parity harness shows greenfield matching behavior at lower ops cost.</p>
+        <div class="grid two">
+          <div class="card"><h3>Modify-existing (default)</h3><p>First-pass files: <code>ingest/daemon.py</code>, <code>meta/schema.py</code>, <code>retrieval/planner.py</code>, <code>retrieval/models.py</code>, <code>cli.py get</code>. Gated on green tests + the golden-query oracle. Rollback: backup + per-ticket flags. Risks: hidden fusion coupling, daemon state durability, proxy-contract drift.</p></div>
+          <div class="card"><h3>Greenfield (parity harness)</h3><p>Contracts before implementations, no legacy; build the <a href="#task-list">target file tree</a> directly; import the golden fixtures as oracle. Comparison harness runs both builds on golden queries (source mix, citations, latency, token cost). Cut over only on parity &ge; baseline AND lower ops cost. Risks: re-implementation drift, effort duplication, premature cutover.</p></div>
+        </div>
+        <p class="note">Rollback &amp; done: every migration step sits behind a flag or thin alias (revert = config change + backup). Definition of done: the 12 stories pass, the 17 core graphs are live, dreamtime promotes on delta, and <code>aaa doctor</code> is green on a clean machine.</p>
       </section>
 
       <section id="audit-appendix">
@@ -1475,7 +1504,7 @@ aaa analytics serve              # open the webUX</code></pre>
           <tbody>
             <tr><td>G1 Quota max</td><td><code>quota.proxy_client</code></td><td>utilization % live; free-first ranking</td><td>S1</td></tr>
             <tr><td>G2 Dreamtime</td><td><code>dream.engine/.gold/.predict</code></td><td>promote-on-delta; budget+schedule honored</td><td>S4,S12</td></tr>
-            <tr><td>G3 Analytics</td><td><code>analytics.events/.views/.web</code></td><td>24 core then 84 graphs; each has an action</td><td>S11</td></tr>
+            <tr><td>G3 Analytics</td><td><code>analytics.events/.views/.web</code></td><td>17 core then 84 graphs; each has an action</td><td>S11</td></tr>
             <tr><td>G4 Tasks</td><td><code>tasks.board</code></td><td>cross-agent edit; living spec; cass context</td><td>S9</td></tr>
             <tr><td>G5 Metadata</td><td><code>meta.schema</code></td><td>100% items tagged across tiers</td><td>S8</td></tr>
             <tr><td>G6 Pipelines</td><td><code>ingest.pipeline</code>, <code>retrieval.planner</code></td><td>DAG versions gated on golden fixtures</td><td>S2,S5</td></tr>
@@ -1612,7 +1641,7 @@ aaa analytics serve              # open the webUX</code></pre>
           <div class="card"><h3>Web activity on timelines</h3><p>Integrate browsing/web activity with project timelines so research context joins the work it informed.</p></div>
           <div class="card"><h3>Web AI transcript ingestion</h3><p>Ingest all web-based AI transcripts, tagging metadata and identifying topic and artifacts first &mdash; the same pipeline, a new connector.</p></div>
           <div class="card"><h3>Autonomous ship</h3><p>An agent that starts new tasks, completes them, and publishes/ships them based on what the memory system knows.</p></div>
-          <div class="card"><h3>Literal second brain</h3><p>Access via neural interfaces embedded in brain/eye/body &mdash; the long-horizon vision the substrate is built toward.</p></div>
+          <div class="card"><h3>Literal second brain <span class="status opinion">speculative</span></h3><p>Long-horizon, no architectural commitment: external capture surfaces today (wearables / AR), and &mdash; far out &mdash; direct neural interfaces. Listed as directional vision, not a roadmap item.</p></div>
           <div class="card"><h3>Edge &amp; networked memory</h3><p>Containerized memory for edge agent deployment (an ESP32 agent needs memories too) and a cross-system multi-computer network on the Cass model.</p></div>
           <div class="card"><h3>Agent-specific memory</h3><p>Per-agent memory scopes &mdash; an eBay agent gets sales/product info, a dev agent gets code &mdash; via flags like <code>code-agent</code> in the NoSQL metadata store.</p></div>
         </div>
@@ -1644,7 +1673,7 @@ aaa analytics serve              # open the webUX</code></pre>
         <table>
           <thead><tr><th>Audit question</th><th>Pass condition</th></tr></thead>
           <tbody>
-            <tr><td>Does it maximize quota?</td><td>Free/expiring windows trend to near-100% utilization with no interactive impact.</td></tr>
+            <tr><td>Does it maximize quota?</td><td>Free/expiring windows reach &ge;80% utilization while p95 interactive latency stays within the configured budget.</td></tr>
             <tr><td>Is dreamtime worth it?</td><td>Overnight produces measurably improved real artifacts, cited, with a readable cost log.</td></tr>
             <tr><td>Is analytics actionable?</td><td>Every shipped graph has a named decision it changes; reviews exist at day/week/month/year.</td></tr>
             <tr><td>Is the board the spine?</td><td>All engines read/write one cross-agent board; living specs exist per project.</td></tr>
@@ -1655,35 +1684,6 @@ aaa analytics serve              # open the webUX</code></pre>
           </tbody>
         </table>
         <div class="quote">What success feels like: you sleep, free quota gets spent on your actual projects, you wake to better documents and a pre-staged brief you hadn't asked for, and one dashboard tells you exactly what your AI did, what it cost, and what to change today.</div>
-      </section>
-
-      <section id="command-cookbook">
-        <div class="kicker">Command cookbook</div>
-        <h2>Pasteable commands for operators and reviewers.</h2>
-        <pre><code># --- install / health ---
-pipx install aaa-memory
-aaa doctor                                   # G11 diagnostics, recommends config
-aaa ingest daemon --install                  # resident low-memory ingest/recall
-aaa ops cass --setup                         # cass install + triage + index + cron
-aaa plugins install claude-code codex pi     # G17 preconfigured surfaces
-
-# --- memory ---
-aaa save "prefers Svelte 5 + Hono + Bun" --project stack --source claude-code
-aaa recall "what did we decide about analytics" --limit 6 --json
-aaa get --source cass --query "cron fix" --robot          # G8 precise retrieval
-aaa get --source graph --project X --since 2026-06-01 --json
-
-# --- engines ---
-aaa quota status                              # windows, remaining, reset, waste forecast (G1)
-aaa dream run --hours 6 --budget free-first   # spend idle quota now (G2)
-aaa dream history | aaa dream gold-standards
-aaa tasks board | aaa tasks add "refine paper" --project P --dream-eligible (G4)
-aaa analytics serve                           # G3 webUX (84 graphs)
-
-# --- knowledge ---
-aaa intake ~/obsidian-vault                   # G16
-aaa wiki browse | aaa wiki publish path/to/page  # G15
-aaa sync                                       # G18 multi-machine</code></pre>
       </section>
 
       <section id="verification">
@@ -1697,7 +1697,7 @@ aaa sync                                       # G18 multi-machine</code></pre>
             <tr><td>One planner</td><td>grep for fusion entrypoints</td><td>Exactly one.</td></tr>
             <tr><td>Quota live</td><td><code>aaa quota status</code></td><td>Windows read from proxy; utilization metric present.</td></tr>
             <tr><td>Dreamtime delta</td><td><code>aaa dream history</code></td><td>Every promotion has quality_after &gt; quality_before.</td></tr>
-            <tr><td>Graphs actionable</td><td>analytics catalog</td><td>24 core live; each maps metric &rarr; action.</td></tr>
+            <tr><td>Graphs actionable</td><td>analytics catalog</td><td>17 core live; each maps metric &rarr; action.</td></tr>
             <tr><td>Doctor</td><td><code>aaa doctor</code></td><td>Green on a clean machine.</td></tr>
             <tr><td>Stories</td><td>acceptance suite</td><td>All 12 pass.</td></tr>
           </tbody>
