@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="600" viewBox="0 0 1280 600" role="img" aria-labelledby="t d">
+  <title id="t">Multi-bitrate, multi-store RAG architecture</title>
+  <desc id="d">Memvid encodes cold content at multiple bitrates; a non-relational DB holds metadata; a relational SQL DB supports inner and outer joins; a vector index supports similarity; four RAG modes (semantic, vector, contextual, agentic) run over the composite, selected by the planner.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f8f5}.band{fill:#ffffff;stroke:#27342f;stroke-width:2}.node{fill:#fefefe;stroke:#27342f;stroke-width:2}
+      .green{fill:#e4efe7;stroke:#2f684f;stroke-width:2}.gold{fill:#fff1d8;stroke:#a45d13;stroke-width:2}.blue{fill:#e8eef6;stroke:#315a86;stroke-width:2}
+      .text{font-family:Arial,Helvetica,sans-serif;fill:#1e2723}.h{font-size:23px;font-weight:700}.m{font-size:16px;font-weight:700}.s{font-size:13px}.xs{font-size:11px}
+      .arrow{stroke:#27342f;stroke-width:2.5;fill:none;marker-end:url(#a)}
+    </style>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#27342f"/></marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1280" height="600"/>
+  <text class="text h" x="48" y="46">Memvid taken overboard: a composite store, four modes</text>
+  <text class="text s" x="48" y="72">The planner chooses modes per query; the pipeline audit tracks each mode's win rate so the mix is tuned by evidence.</text>
+
+  <rect class="gold" x="44" y="100" width="280" height="80" rx="8"/>
+  <text class="text m" x="66" y="130">Planner (per query)</text>
+  <text class="text s" x="66" y="156">selects modes + sources + budget</text>
+
+  <rect class="band" x="44" y="220" width="560" height="320" rx="8"/>
+  <text class="text m" x="66" y="250">Composite store</text>
+
+  <rect class="blue" x="66" y="268" width="248" height="120" rx="8"/>
+  <text class="text m" x="88" y="296">Memvid multi-bitrate</text>
+  <text class="text s" x="88" y="320">cold content, several fidelities</text>
+  <rect class="node" x="88" y="332" width="66" height="30" rx="5"/><text class="text xs" x="100" y="352">high</text>
+  <rect class="node" x="162" y="332" width="66" height="30" rx="5"/><text class="text xs" x="174" y="352">med</text>
+  <rect class="node" x="236" y="332" width="66" height="30" rx="5"/><text class="text xs" x="248" y="352">low</text>
+
+  <rect class="green" x="334" y="268" width="248" height="120" rx="8"/>
+  <text class="text m" x="356" y="296">Relational SQL</text>
+  <text class="text s" x="356" y="320">normalized entities</text>
+  <text class="text xs" x="356" y="344">inner + outer joins:</text>
+  <text class="text xs" x="356" y="362">"sessions with no wiki page"</text>
+
+  <rect class="gold" x="66" y="404" width="248" height="116" rx="8"/>
+  <text class="text m" x="88" y="432">Non-relational metadata</text>
+  <text class="text s" x="88" y="456">flexible per-item attributes</text>
+  <text class="text xs" x="88" y="480">tags, agent_scope (code-agent),</text>
+  <text class="text xs" x="88" y="498">arbitrary, schema-free</text>
+
+  <rect class="blue" x="334" y="404" width="248" height="116" rx="8"/>
+  <text class="text m" x="356" y="432">Vector index</text>
+  <text class="text s" x="356" y="456">embeddings for similarity</text>
+  <text class="text xs" x="356" y="480">metadata pre-filtering</text>
+
+  <rect class="band" x="664" y="180" width="572" height="360" rx="8"/>
+  <text class="text m" x="686" y="210">Four RAG modes</text>
+  <rect class="green" x="686" y="226" width="262" height="130" rx="8"/>
+  <text class="text m" x="708" y="254">Semantic</text><text class="text s" x="708" y="280">meaning-based over</text><text class="text s" x="708" y="300">embeddings; concept match</text>
+  <rect class="green" x="962" y="226" width="252" height="130" rx="8"/>
+  <text class="text m" x="984" y="254">Vector</text><text class="text s" x="984" y="280">nearest-neighbor +</text><text class="text s" x="984" y="300">metadata filter; fast path</text>
+  <rect class="green" x="686" y="372" width="262" height="148" rx="8"/>
+  <text class="text m" x="708" y="400">Contextual</text><text class="text s" x="708" y="426">chunks carry document,</text><text class="text s" x="708" y="446">project, time so fragments</text><text class="text s" x="708" y="466">stay interpretable</text>
+  <rect class="gold" x="962" y="372" width="252" height="148" rx="8"/>
+  <text class="text m" x="984" y="400">Agentic</text><text class="text s" x="984" y="426">agent plans multi-step</text><text class="text s" x="984" y="446">retrieval: query, read,</text><text class="text s" x="984" y="466">refine, join</text>
+
+  <path class="arrow" d="M184 180 L184 218"/>
+  <path class="arrow" d="M324 140 L662 280"/>
+  <path class="arrow" d="M604 320 L662 300"/>
+  <path class="arrow" d="M604 440 L662 440"/>
+</svg>

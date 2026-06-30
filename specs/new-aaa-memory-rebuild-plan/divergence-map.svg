@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Divergence map from original plan to current implementation</title>
+  <desc id="desc">A comparison diagram showing original intent, current implementation, and the quality effect of each divergence.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f8f7f2}.box{fill:#fff;stroke:#24312b;stroke-width:2}.pos{fill:#e5f1e5;stroke:#2d6b48;stroke-width:2}.neg{fill:#fde8df;stroke:#9b3b1e;stroke-width:2}.mix{fill:#fff3d6;stroke:#9a6415;stroke-width:2}.text{font-family:Arial,Helvetica,sans-serif;fill:#1f2824}.h{font-size:24px;font-weight:700}.m{font-size:16px;font-weight:700}.s{font-size:13px}.arrow{stroke:#24312b;stroke-width:2.4;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#24312b"/></marker>
+  </defs>
+  <rect class="bg" width="1280" height="720"/>
+  <text class="text h" x="56" y="54">Divergence quality map</text>
+  <text class="text s" x="56" y="82">The useful changes should be kept, but they need a clearer role model and stronger verification before they can satisfy the original plan.</text>
+
+  <rect class="box" x="54" y="124" width="330" height="500" rx="8"/>
+  <text class="text m" x="82" y="158">Original plan</text>
+  <text class="text s" x="82" y="194">Cross-agent capture</text>
+  <text class="text s" x="82" y="228">Element extraction</text>
+  <text class="text s" x="82" y="262">Embeddings at ingestion</text>
+  <text class="text s" x="82" y="296">Hybrid retrieval and rerank</text>
+  <text class="text s" x="82" y="330">ClawMem hot tier</text>
+  <text class="text s" x="82" y="364">Graph/wiki warm tier</text>
+  <text class="text s" x="82" y="398">Memvid cold archive</text>
+  <text class="text s" x="82" y="432">Session audit and timelines</text>
+  <text class="text s" x="82" y="466">Anti echo loop</text>
+  <text class="text s" x="82" y="500">MCP and CLI access</text>
+
+  <rect class="box" x="474" y="124" width="330" height="500" rx="8"/>
+  <text class="text m" x="502" y="158">Current implementation</text>
+  <text class="text s" x="502" y="194">Vault-first explicit memory</text>
+  <text class="text s" x="502" y="228">Partial element model</text>
+  <text class="text s" x="502" y="262">Mostly lexical scoring</text>
+  <text class="text s" x="502" y="296">Duplicated retrieval functions</text>
+  <text class="text s" x="502" y="330">ClawMem treated inconsistently</text>
+  <text class="text s" x="502" y="364">Wiki and dream compilers overlap</text>
+  <text class="text s" x="502" y="398">SQLite cold fallback, not Memvid</text>
+  <text class="text s" x="502" y="432">Cass hook exists, adapter missing</text>
+  <text class="text s" x="502" y="466">Tests blocked by import/deps</text>
+  <text class="text s" x="502" y="500">MCP and CLI mostly present</text>
+
+  <rect class="pos" x="894" y="124" width="310" height="104" rx="8"/>
+  <text class="text m" x="926" y="158">Positive divergence</text>
+  <text class="text s" x="926" y="188">Vault is better for explicit user facts</text>
+  <text class="text s" x="926" y="210">Cass improves session coverage</text>
+
+  <rect class="mix" x="894" y="268" width="310" height="134" rx="8"/>
+  <text class="text m" x="926" y="302">Mixed divergence</text>
+  <text class="text s" x="926" y="332">Simpler SQLite tiers reduce ops cost</text>
+  <text class="text s" x="926" y="354">but weaken semantic and temporal quality</text>
+  <text class="text s" x="926" y="376">unless adapters and benchmarks are added</text>
+
+  <rect class="neg" x="894" y="442" width="310" height="148" rx="8"/>
+  <text class="text m" x="926" y="476">Negative divergence</text>
+  <text class="text s" x="926" y="506">Broken imports and stale tests</text>
+  <text class="text s" x="926" y="528">Duplicated source-of-truth modules</text>
+  <text class="text s" x="926" y="550">No canonical provenance envelope</text>
+  <text class="text s" x="926" y="572">No measured retrieval quality</text>
+
+  <path class="arrow" d="M384 374 L470 374"/>
+  <path class="arrow" d="M804 250 L890 178"/>
+  <path class="arrow" d="M804 374 L890 336"/>
+  <path class="arrow" d="M804 486 L890 518"/>
+</svg>

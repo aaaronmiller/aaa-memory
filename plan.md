@@ -485,6 +485,7 @@ implementation plan. That is what the careful Sliither investigated.
       Replace current hook script with fast core.
       Then package adapters.
 
+
     Grounding sources used:
       Claude Code hooks reference:
         https://code.claude.com/docs/en/hooks

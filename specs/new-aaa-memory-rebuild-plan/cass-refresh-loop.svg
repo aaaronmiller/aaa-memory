@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="620" viewBox="0 0 1280 620" role="img" aria-labelledby="title desc">
+  <title id="title">Cass refresh loop</title>
+  <desc id="desc">A four times daily cass cron refresh loop that indexes local agent sessions and feeds the aaa-memory evidence adapter.</desc>
+  <defs>
+    <style>
+      .bg{fill:#08110f}.panel{fill:#101c19;stroke:#69c99b;stroke-width:2}.node{fill:#152521;stroke:#d1b46d;stroke-width:2}.node2{fill:#111f2c;stroke:#79a9e8;stroke-width:2}.txt{font-family:Verdana,Geneva,sans-serif;fill:#edf7ef}.h{font-size:25px;font-weight:700}.m{font-size:16px;font-weight:700}.s{font-size:13px;fill:#b9c9c0}.arrow{stroke:#69c99b;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#d1b46d;stroke-width:2;stroke-dasharray:7 7;fill:none;marker-end:url(#arrow2)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#69c99b"/></marker>
+    <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#d1b46d"/></marker>
+  </defs>
+  <rect class="bg" width="1280" height="620"/>
+  <text class="txt h" x="58" y="58">Cass freshness loop: installed with aaa-memory, refreshed every 6 hours</text>
+  <text class="txt s" x="58" y="86">The cron job is operational hygiene, not a retrieval repair path. Retrieval still reads triage metadata and exposes stale or fallback status.</text>
+  <rect class="panel" x="58" y="130" width="1164" height="400" rx="14"/>
+
+  <rect class="node" x="98" y="230" width="190" height="112" rx="10"/>
+  <text class="txt m" x="126" y="264">Agent sessions</text>
+  <text class="txt s" x="126" y="292">Codex, Claude, Hermes,</text>
+  <text class="txt s" x="126" y="314">OpenCode, Gemini, more</text>
+
+  <rect class="node2" x="370" y="184" width="210" height="116" rx="10"/>
+  <text class="txt m" x="402" y="220">Cron schedule</text>
+  <text class="txt s" x="402" y="248">0 */6 * * *</text>
+  <text class="txt s" x="402" y="270">four refreshes daily</text>
+
+  <rect class="node" x="370" y="348" width="210" height="112" rx="10"/>
+  <text class="txt m" x="402" y="382">cass index</text>
+  <text class="txt s" x="402" y="410">--json</text>
+  <text class="txt s" x="402" y="432">--no-progress-events</text>
+
+  <rect class="node2" x="662" y="230" width="214" height="112" rx="10"/>
+  <text class="txt m" x="692" y="264">Cass data dir</text>
+  <text class="txt s" x="692" y="292">~/.local/share/</text>
+  <text class="txt s" x="692" y="314">coding-agent-search</text>
+
+  <rect class="node" x="952" y="184" width="210" height="116" rx="10"/>
+  <text class="txt m" x="982" y="220">aaa-memory adapter</text>
+  <text class="txt s" x="982" y="248">triage, search, pack</text>
+  <text class="txt s" x="982" y="270">evidence envelope</text>
+
+  <rect class="node2" x="952" y="348" width="210" height="112" rx="10"/>
+  <text class="txt m" x="982" y="382">Refresh log</text>
+  <text class="txt s" x="982" y="410">~/.cache/aaa-memory/</text>
+  <text class="txt s" x="982" y="432">logs/cass-index.log</text>
+
+  <path class="arrow" d="M288 286 L366 242"/>
+  <path class="arrow" d="M475 300 L475 344"/>
+  <path class="arrow" d="M580 404 L658 314"/>
+  <path class="arrow" d="M876 286 L948 242"/>
+  <path class="dash" d="M580 404 C704 494 836 498 948 414"/>
+  <path class="dash" d="M1057 184 C1057 130 474 126 474 180"/>
+</svg>

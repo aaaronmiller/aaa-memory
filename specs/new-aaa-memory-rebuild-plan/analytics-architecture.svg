@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="560" viewBox="0 0 1280 560" role="img" aria-labelledby="t d">
+  <title id="t">Analytics architecture</title>
+  <desc id="d">Engines emit append-only events; views aggregate them; reviews window them to day/week/month/year; the webUX renders 84 actionable graphs across user and AI scopes.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f8f5}.band{fill:#ffffff;stroke:#27342f;stroke-width:2}.node{fill:#fefefe;stroke:#27342f;stroke-width:2}
+      .green{fill:#e4efe7;stroke:#2f684f;stroke-width:2}.gold{fill:#fff1d8;stroke:#a45d13;stroke-width:2}.blue{fill:#e8eef6;stroke:#315a86;stroke-width:2}
+      .text{font-family:Arial,Helvetica,sans-serif;fill:#1e2723}.h{font-size:23px;font-weight:700}.m{font-size:16px;font-weight:700}.s{font-size:13px}.xs{font-size:11px}
+      .arrow{stroke:#27342f;stroke-width:2.5;fill:none;marker-end:url(#a)}
+    </style>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#27342f"/></marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1280" height="560"/>
+  <text class="text h" x="48" y="46">From events to actionable graphs</text>
+  <text class="text s" x="48" y="72">Every graph names the decision it changes. If it cannot change a future action, it is deleted, not shipped.</text>
+
+  <rect class="band" x="44" y="100" width="250" height="320" rx="8"/>
+  <text class="text m" x="66" y="128">Emitters</text>
+  <rect class="green" x="66" y="142" width="206" height="38" rx="6"/><text class="text s" x="82" y="166">Quota engine</text>
+  <rect class="green" x="66" y="190" width="206" height="38" rx="6"/><text class="text s" x="82" y="214">Dreamtime</text>
+  <rect class="green" x="66" y="238" width="206" height="38" rx="6"/><text class="text s" x="82" y="262">Tasks board</text>
+  <rect class="green" x="66" y="286" width="206" height="38" rx="6"/><text class="text s" x="82" y="310">Retrieval / ingest</text>
+  <rect class="green" x="66" y="334" width="206" height="38" rx="6"/><text class="text s" x="82" y="358">User behavior</text>
+  <text class="text xs" x="66" y="396">each emits AnalyticsEvent</text>
+
+  <rect class="gold" x="338" y="160" width="250" height="200" rx="8"/>
+  <text class="text m" x="360" y="190">Event store</text>
+  <text class="text s" x="360" y="216">append-only, typed</text>
+  <text class="text xs" x="360" y="240">ts, scope(user|ai),</text>
+  <text class="text xs" x="360" y="260">category, metric, value,</text>
+  <text class="text xs" x="360" y="280">dims{project,agent,tool,</text>
+  <text class="text xs" x="360" y="300">task,model,window}, ref</text>
+  <text class="text xs" x="360" y="336">multi-machine union (G18)</text>
+
+  <rect class="blue" x="632" y="120" width="250" height="130" rx="8"/>
+  <text class="text m" x="654" y="148">Views</text>
+  <text class="text s" x="654" y="174">filter &#8901; drill-down</text>
+  <text class="text s" x="654" y="196">cross-link &#8901; aggregate</text>
+  <text class="text xs" x="654" y="226">aggregate &#8596; granular per-tool</text>
+
+  <rect class="blue" x="632" y="270" width="250" height="90" rx="8"/>
+  <text class="text m" x="654" y="298">Reviews</text>
+  <text class="text s" x="654" y="324">daily / weekly /</text>
+  <text class="text s" x="654" y="346">monthly / yearly</text>
+
+  <rect class="band" x="926" y="120" width="312" height="240" rx="8"/>
+  <text class="text m" x="948" y="148">webUX &#8901; 84 graphs</text>
+  <rect class="green" x="948" y="162" width="134" height="34" rx="5"/><text class="text xs" x="962" y="184">A quota/cost &#215;12</text>
+  <rect class="green" x="1092" y="162" width="134" height="34" rx="5"/><text class="text xs" x="1106" y="184">B dreamtime &#215;12</text>
+  <rect class="green" x="948" y="204" width="134" height="34" rx="5"/><text class="text xs" x="962" y="226">C tasks &#215;14</text>
+  <rect class="green" x="1092" y="204" width="134" height="34" rx="5"/><text class="text xs" x="1106" y="226">D behavior &#215;12</text>
+  <rect class="green" x="948" y="246" width="134" height="34" rx="5"/><text class="text xs" x="962" y="268">E retrieval &#215;12</text>
+  <rect class="green" x="1092" y="246" width="134" height="34" rx="5"/><text class="text xs" x="1106" y="268">F ingest &#215;10</text>
+  <rect class="gold" x="948" y="288" width="278" height="34" rx="5"/><text class="text xs" x="962" y="310">R reviews &#215;12 (windowed rollups)</text>
+  <text class="text xs" x="948" y="344">scopes: user + AI &#8901; 24 core ship first</text>
+
+  <path class="arrow" d="M294 260 L336 260"/>
+  <path class="arrow" d="M588 220 L630 185"/>
+  <path class="arrow" d="M588 300 L630 315"/>
+  <path class="arrow" d="M882 185 L924 200"/>
+  <path class="arrow" d="M882 315 L924 290"/>
+</svg>

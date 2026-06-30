@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="520" viewBox="0 0 1280 520" role="img" aria-labelledby="t d">
+  <title id="t">Multi-machine sync topology</title>
+  <desc id="d">Each machine runs its own ingest daemon and Cass; periodic content-addressed, conflict-aware sync keeps vault, task board, analytics events, and the cold index coherent across machines.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f8f5}.band{fill:#ffffff;stroke:#27342f;stroke-width:2}.node{fill:#fefefe;stroke:#27342f;stroke-width:2}
+      .green{fill:#e4efe7;stroke:#2f684f;stroke-width:2}.gold{fill:#fff1d8;stroke:#a45d13;stroke-width:2}.blue{fill:#e8eef6;stroke:#315a86;stroke-width:2}
+      .text{font-family:Arial,Helvetica,sans-serif;fill:#1e2723}.h{font-size:23px;font-weight:700}.m{font-size:16px;font-weight:700}.s{font-size:13px}.xs{font-size:11px}
+      .arrow{stroke:#27342f;stroke-width:2.5;fill:none;marker-end:url(#a)}.sync{stroke:#2f684f;stroke-width:3;fill:none;stroke-dasharray:7 5;marker-end:url(#a);marker-start:url(#a)}
+    </style>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2f684f"/></marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1280" height="520"/>
+  <text class="text h" x="48" y="46">Periodic, content-addressed, conflict-aware sync</text>
+  <text class="text s" x="48" y="72">Like Cass, the system spans machines; each node stays current on user and AI activity. Sync emits analytics events.</text>
+
+  <rect class="band" x="44" y="104" width="360" height="356" rx="8"/>
+  <text class="text m" x="66" y="132">Laptop</text>
+  <rect class="green" x="66" y="146" width="316" height="44" rx="6"/><text class="text s" x="82" y="174">ingest daemon + local Cass</text>
+  <rect class="node" x="66" y="200" width="316" height="40" rx="6"/><text class="text s" x="82" y="225">vault + metadata</text>
+  <rect class="node" x="66" y="250" width="316" height="40" rx="6"/><text class="text s" x="82" y="275">task board</text>
+  <rect class="node" x="66" y="300" width="316" height="40" rx="6"/><text class="text s" x="82" y="325">analytics events</text>
+  <rect class="node" x="66" y="350" width="316" height="40" rx="6"/><text class="text s" x="82" y="375">cold index (lazy bitrates)</text>
+  <rect class="blue" x="66" y="400" width="316" height="44" rx="6"/><text class="text s" x="82" y="428">dreamtime spends this node's quota</text>
+
+  <rect class="band" x="876" y="104" width="360" height="356" rx="8"/>
+  <text class="text m" x="898" y="132">Workstation</text>
+  <rect class="green" x="898" y="146" width="316" height="44" rx="6"/><text class="text s" x="914" y="174">ingest daemon + local Cass</text>
+  <rect class="node" x="898" y="200" width="316" height="40" rx="6"/><text class="text s" x="914" y="225">vault + metadata</text>
+  <rect class="node" x="898" y="250" width="316" height="40" rx="6"/><text class="text s" x="914" y="275">task board</text>
+  <rect class="node" x="898" y="300" width="316" height="40" rx="6"/><text class="text s" x="914" y="325">analytics events</text>
+  <rect class="node" x="898" y="350" width="316" height="40" rx="6"/><text class="text s" x="914" y="375">cold index (lazy bitrates)</text>
+  <rect class="blue" x="898" y="400" width="316" height="44" rx="6"/><text class="text s" x="914" y="428">GPU embeddings for both</text>
+
+  <rect class="gold" x="464" y="190" width="352" height="190" rx="8"/>
+  <text class="text m" x="486" y="220">Sync engine (G18)</text>
+  <text class="text s" x="486" y="248">vault/meta: append-log, hash merge</text>
+  <text class="text s" x="486" y="272">board: CRDT merge (offline-safe)</text>
+  <text class="text s" x="486" y="296">events: idempotent union by id</text>
+  <text class="text s" x="486" y="320">cold: eager index, lazy bitrates</text>
+  <text class="text s" x="486" y="344">cass: sync summaries, not raw index</text>
+  <text class="text xs" x="486" y="368">cadence configurable + observable</text>
+
+  <path class="sync" d="M404 270 L462 270"/>
+  <path class="sync" d="M818 270 L874 270"/>
+</svg>
