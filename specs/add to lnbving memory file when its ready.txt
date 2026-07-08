@@ -1,0 +1,18 @@
+collaborator that builds understanding over time.
+
+ 
+
+How does Claude’s memory work?
+In addition to searching past chats, enabling Claude’s memory feature adds several capabilities.
+
+ 
+
+Memory summary
+Claude will automatically summarize your conversations and create a synthesis of key insights across your chat history (not including chats in projects). This synthesis is updated every 24 hours and provides context for every new standalone conversation.
+
+ 
+
+Project memory and summary
+Each project has its own separate memory space and dedicated project summary, so the context within each of your projects is focused, relevant, and separate from other projects or non-project chats.
+
+ 
