@@ -114,6 +114,17 @@ class VaultMemoryStore:
 
     def recall(self, query, limit=DEFAULT_LIMIT, project=None):
         records = self.all(project)
+        # Injection guardrail: recall output goes into the system prompt every
+        # turn. Cap total recalled content so recall can never flood context.
+        MAX_RECALL_CHARS = 16000
+        kept, total = [], 0
+        for r in records:
+            size = len(r.get("content", ""))
+            if total + size > MAX_RECALL_CHARS:
+                break
+            kept.append(r)
+            total += size
+        records = kept
         if not records:
             return []
         q_tokens = _tokens(query)
