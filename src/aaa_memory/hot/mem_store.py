@@ -72,6 +72,10 @@ class VaultMemoryStore:
         content = (content or "").strip()
         if not content:
             return None
+        # Guardrail: cap stored entries at 4K chars. Oversized conversation
+        # dumps (100K+) were being recalled into every session prompt.
+        if len(content) > 4000 and not pinned:
+            content = content[:4000]
         conn = self._conn()
         # Dedup
         existing = conn.execute(
