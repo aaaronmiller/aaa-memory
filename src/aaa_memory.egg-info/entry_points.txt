@@ -1,3 +1,0 @@
-[console_scripts]
-aaa-memory = aaa_memory.cli:main
-aaa-memory-mcp = aaa_memory.mcp:main
