@@ -557,7 +557,7 @@ Each layer brings a different structural truth:
 • Hierarchical chunks: topology
 
 A modern RAG system is useless without all four.  
-Your architecture depends on treating them not as options but as **foundational strata**.
+Your architecture depends on treating them not as options but as **foundational spec-prep**.
 
 
 
