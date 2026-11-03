@@ -55,6 +55,9 @@ class EvidenceJournal:
     def _connect(self) -> Iterator[sqlite3.Connection]:
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         conn = sqlite3.connect(self.path, timeout=30)
+        # Source evidence may include confidential information. Restrict file access
+        # before any event is stored, irrespective of the caller's umask.
+        os.chmod(self.path, 0o600)
         conn.row_factory = sqlite3.Row
         try:
             conn.execute("PRAGMA busy_timeout=30000")
