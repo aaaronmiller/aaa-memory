@@ -7,6 +7,7 @@ Commands:
   aaa-memory audit --update    → run full discovery scan
 """
 
+import json
 import sys
 import argparse
 from pathlib import Path
@@ -62,6 +63,7 @@ def cmd_audit(args):
             except Exception:
                 pass
 
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(cache, indent=2))
     print(f"Classified {len(cache)} sessions → {cache_path}")
 
@@ -88,6 +90,26 @@ def main():
     sub_audit = sub.add_parser("audit", help="Run full audit")
     sub_audit.add_argument("--update", action="store_true", help="Refresh all caches")
 
+    evidence = sub.add_parser("evidence", help="Inspect and capture durable source evidence")
+    evidence_sub = evidence.add_subparsers(dest="evidence_command", required=True)
+    ingest = evidence_sub.add_parser("append", help="Append one event, idempotently")
+    ingest.add_argument("--source", required=True)
+    ingest.add_argument("--event-id", required=True)
+    ingest.add_argument("--session", required=True)
+    ingest.add_argument("--project", default="unclassified")
+    ingest.add_argument("--kind", default="observation")
+    ingest.add_argument("--file", type=Path, help="Read event content from a UTF-8 file (stdin by default)")
+    lookup = evidence_sub.add_parser("search", help="Search compact evidence index")
+    lookup.add_argument("query")
+    lookup.add_argument("--project")
+    lookup.add_argument("--limit", type=int, default=10)
+    detail = evidence_sub.add_parser("get", help="Read full evidence by ID")
+    detail.add_argument("id", type=int)
+    timeline = evidence_sub.add_parser("timeline", help="List events for a session")
+    timeline.add_argument("session")
+    timeline.add_argument("--limit", type=int, default=50)
+    evidence_sub.add_parser("verify", help="Verify stored content hashes and FTS count")
+
     args = parser.parse_args()
 
     if args.command == "sessions":
@@ -96,6 +118,26 @@ def main():
         cmd_timeline(args)
     elif args.command == "audit":
         cmd_audit(args)
+    elif args.command == "evidence":
+        from aaa_memory.evidence_journal import EvidenceJournal
+        journal = EvidenceJournal()
+        if args.evidence_command == "append":
+            content = args.file.read_text(encoding="utf-8") if args.file else sys.stdin.read()
+            result = journal.append(
+                source=args.source, external_id=args.event_id,
+                session_id=args.session, project=args.project,
+                kind=args.kind, content=content,
+                source_path=str(args.file) if args.file else None,
+            )
+        elif args.evidence_command == "search":
+            result = journal.search(args.query, limit=args.limit, project=args.project)
+        elif args.evidence_command == "get":
+            result = journal.get(args.id)
+        elif args.evidence_command == "timeline":
+            result = journal.timeline(args.session, limit=args.limit)
+        else:
+            result = journal.verify()
+        print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
         parser.print_help()
 
