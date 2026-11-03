@@ -481,11 +481,10 @@ aaa-memory evidence verify
 aaa-memory evidence import-jsonl ~/sessions/session.jsonl --source codex --project aaa-memory
 
 # Preserve an output before its temporary workspace is cleaned up
-aaa-memory artifact register ~/output/report.html --project aaa-memory --session session-1
+ARTIFACT_ID="$(aaa-memory artifact register ~/output/report.html --project aaa-memory --session session-1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
 aaa-memory artifact list --project aaa-memory
-# Use the ID returned by register:
-# aaa-memory artifact verify <artifact-id>
-# aaa-memory artifact restore <artifact-id> ~/recovered-report.html
+aaa-memory artifact verify "$ARTIFACT_ID"
+aaa-memory artifact restore "$ARTIFACT_ID" ~/recovered-report.html
 ```
 
 The journal defaults to `~/.cache/aaa-memory/evidence.sqlite` and can be redirected
