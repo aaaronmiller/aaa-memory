@@ -11,6 +11,7 @@ import json
 import os
 import re
 import sqlite3
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,7 +62,17 @@ class EvidenceJournal:
         conn.row_factory = sqlite3.Row
         try:
             conn.execute("PRAGMA busy_timeout=30000")
-            conn.execute("PRAGMA journal_mode=WAL")
+            # A concurrent first-open may be switching journal modes. SQLite
+            # reports SQLITE_BUSY immediately for this PRAGMA on some builds,
+            # even when busy_timeout is configured. Retry only that transition.
+            for attempt in range(20):
+                try:
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    break
+                except sqlite3.OperationalError as exc:
+                    if "locked" not in str(exc).lower() or attempt == 19:
+                        raise
+                    time.sleep(0.05)
             conn.execute("PRAGMA foreign_keys=ON")
             yield conn
             conn.commit()
