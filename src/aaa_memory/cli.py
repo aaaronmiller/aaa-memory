@@ -7,6 +7,7 @@ Commands:
   aaa-memory audit --update    → run full discovery scan
 """
 
+import json
 import sys
 import argparse
 from pathlib import Path
@@ -62,6 +63,7 @@ def cmd_audit(args):
             except Exception:
                 pass
 
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(cache, indent=2))
     print(f"Classified {len(cache)} sessions → {cache_path}")
 
@@ -88,6 +90,49 @@ def main():
     sub_audit = sub.add_parser("audit", help="Run full audit")
     sub_audit.add_argument("--update", action="store_true", help="Refresh all caches")
 
+    evidence = sub.add_parser("evidence", help="Inspect and capture durable source evidence")
+    evidence_sub = evidence.add_subparsers(dest="evidence_command", required=True)
+    ingest = evidence_sub.add_parser("append", help="Append one event, idempotently")
+    ingest.add_argument("--source", required=True)
+    ingest.add_argument("--event-id", required=True)
+    ingest.add_argument("--session", required=True)
+    ingest.add_argument("--project", default="unclassified")
+    ingest.add_argument("--kind", default="observation")
+    ingest.add_argument("--file", type=Path, help="Read event content from a UTF-8 file (stdin by default)")
+    lookup = evidence_sub.add_parser("search", help="Search compact evidence index")
+    lookup.add_argument("query")
+    lookup.add_argument("--project")
+    lookup.add_argument("--limit", type=int, default=10)
+    detail = evidence_sub.add_parser("get", help="Read full evidence by ID")
+    detail.add_argument("id", type=int)
+    timeline = evidence_sub.add_parser("timeline", help="List events for a session")
+    timeline.add_argument("session")
+    timeline.add_argument("--limit", type=int, default=50)
+    import_session = evidence_sub.add_parser("import-jsonl", help="Import a JSONL session file")
+    import_session.add_argument("file", type=Path)
+    import_session.add_argument("--source", required=True)
+    import_session.add_argument("--session")
+    import_session.add_argument("--project", default="unclassified")
+    evidence_sub.add_parser("verify", help="Verify stored content hashes and FTS count")
+
+    artifact = sub.add_parser("artifact", help="Preserve and recover local generated artifacts")
+    artifact_sub = artifact.add_subparsers(dest="artifact_command", required=True)
+    register = artifact_sub.add_parser("register", help="Snapshot a file into private CAS")
+    register.add_argument("path", type=Path)
+    register.add_argument("--project", default="unclassified")
+    register.add_argument("--session")
+    register.add_argument("--evidence-id", type=int)
+    artifacts = artifact_sub.add_parser("list", help="List registered artifacts")
+    artifacts.add_argument("--project")
+    artifacts.add_argument("--limit", type=int, default=30)
+    for subcommand in ("get", "verify"):
+        child = artifact_sub.add_parser(subcommand)
+        child.add_argument("id")
+    restore = artifact_sub.add_parser("restore", help="Restore a registered artifact")
+    restore.add_argument("id")
+    restore.add_argument("destination", type=Path)
+    restore.add_argument("--overwrite", action="store_true", help="Explicitly replace destination")
+
     args = parser.parse_args()
 
     if args.command == "sessions":
@@ -96,6 +141,52 @@ def main():
         cmd_timeline(args)
     elif args.command == "audit":
         cmd_audit(args)
+    elif args.command == "evidence":
+        from aaa_memory.evidence_journal import EvidenceJournal
+        journal = EvidenceJournal()
+        if args.evidence_command == "append":
+            content = args.file.read_text(encoding="utf-8") if args.file else sys.stdin.read()
+            result = journal.append(
+                source=args.source, external_id=args.event_id,
+                session_id=args.session, project=args.project,
+                kind=args.kind, content=content,
+                source_path=str(args.file) if args.file else None,
+            )
+        elif args.evidence_command == "import-jsonl":
+            from aaa_memory.capture_import import import_jsonl
+            result = import_jsonl(
+                args.file, source=args.source, session_id=args.session,
+                project=args.project, journal=journal,
+            )
+        elif args.evidence_command == "search":
+            result = journal.search(args.query, limit=args.limit, project=args.project)
+        elif args.evidence_command == "get":
+            result = journal.get(args.id)
+        elif args.evidence_command == "timeline":
+            result = journal.timeline(args.session, limit=args.limit)
+        else:
+            result = journal.verify()
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+
+    elif args.command == "artifact":
+        from aaa_memory.artifact_registry import ArtifactRegistry
+        registry = ArtifactRegistry()
+        if args.artifact_command == "register":
+            result = registry.register(
+                args.path, project=args.project, session_id=args.session,
+                evidence_id=args.evidence_id,
+            )
+        elif args.artifact_command == "list":
+            result = registry.list(project=args.project, limit=args.limit)
+        elif args.artifact_command == "get":
+            result = registry.get(args.id)
+        elif args.artifact_command == "verify":
+            result = registry.verify(args.id)
+        else:
+            result = {"restored_path": str(registry.restore(
+                args.id, args.destination, overwrite=args.overwrite,
+            ))}
+        print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
         parser.print_help()
 

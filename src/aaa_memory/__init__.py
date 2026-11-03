@@ -1,33 +1,41 @@
-"""aaa-memory — Personal AI Interaction Archive.
+"""AAA-Memory public API, lazily loaded to keep capture independent of LLM dependencies.
 
-A multi-tier memory system for AI agent sessions.
+Legacy public exports remain available via PEP 562 module __getattr__.
 """
+from importlib import import_module
 
 __version__ = "0.1.0"
 __author__ = "Clawdi"
 
-from .models import Turn, Element, WikiPage, GraphEpisode
-from .classifier import classify as classify_document
-from .extractor import extract, Element as ExtractedElement
-from .embedding import get_embedder
-from .retrieval import hot_search, rrf_fusion
-from .router import classify_intent
-from .audit import discover_sessions, assemble_timeline
-from .cli import main as cli_main
+_EXPORTS = {
+    "Turn": (".models", "Turn"),
+    "Element": (".models", "Element"),
+    "WikiPage": (".models", "WikiPage"),
+    "GraphEpisode": (".models", "GraphEpisode"),
+    "classify_document": (".classifier", "classify"),
+    "extract": (".extractor", "extract"),
+    "ExtractedElement": (".extractor", "Element"),
+    "get_embedder": (".embedding", "get_embedder"),
+    "hot_search": (".retrieval", "hot_search"),
+    "rrf_fusion": (".retrieval", "rrf_fusion"),
+    "classify_intent": (".router", "classify_intent"),
+    "discover_sessions": (".audit", "discover_sessions"),
+    "assemble_timeline": (".audit", "assemble_timeline"),
+    "cli_main": (".cli", "main"),
+}
 
-__all__ = [
-    "Turn",
-    "Element",
-    "WikiPage",
-    "GraphEpisode",
-    "classify_document",
-    "extract",
-    "ExtractedElement",
-    "get_embedder",
-    "hot_search",
-    "rrf_fusion",
-    "classify_intent",
-    "discover_sessions",
-    "assemble_timeline",
-    "cli_main",
-]
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name):
+    try:
+        module_name, attribute_name = _EXPORTS[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    value = getattr(import_module(module_name, __name__), attribute_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

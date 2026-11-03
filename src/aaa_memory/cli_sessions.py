@@ -45,6 +45,12 @@ def cmd_search(args):
         print(f"  [{r.get('tier','?')}] {r.get('raw_text','')[:200]}")
 
 def main():
+    # Historical python -m aaa_memory entrypoint differs from the installed
+    # aaa-memory CLI. Route evidence to the canonical handler while preserving
+    # existing sessions/report/search subcommands in this module.
+    if len(sys.argv) > 1 and sys.argv[1] in {"evidence", "artifact"}:
+        from aaa_memory.cli import main as evidence_main
+        return evidence_main()
     parser = argparse.ArgumentParser(description="aaa-memory CLI")
     sub = parser.add_subparsers(dest="command")
     

@@ -456,6 +456,54 @@ clawmem update --embed
 python3 ~/code/aaa-memory/src/aaa_memory/warm/dream.py --idle 60
 ```
 
+
+## Durable source evidence (feature 002)
+
+The `evidence` CLI records redacted, source-attributed events independently from the
+existing hot/warm/cold memory vault. Agent adapters should assign a **stable** event ID
+for each original event. Replaying the same event is safe; changing its text under
+the same source/event ID is an error.
+
+```bash
+# Install the checked-out branch's Python package and CLI
+python3 -m pip install -e . --no-deps
+
+# Append one event from stdin (not a file path containing credentials)
+printf '%s\n' 'User chose the source-linked evidence design' |
+  aaa-memory evidence append --source manual --event-id design-001 --session design-session --project aaa-memory --kind decision
+
+aaa-memory evidence search "evidence design" --project aaa-memory
+aaa-memory evidence get 1
+aaa-memory evidence timeline design-session
+aaa-memory evidence verify
+
+# Import a real local session transcript (idempotent on replay)
+aaa-memory evidence import-jsonl ~/sessions/session.jsonl --source codex --project aaa-memory
+
+# Preserve an output before its temporary workspace is cleaned up
+ARTIFACT_ID="$(aaa-memory artifact register ~/output/report.html --project aaa-memory --session session-1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+aaa-memory artifact list --project aaa-memory
+aaa-memory artifact verify "$ARTIFACT_ID"
+aaa-memory artifact restore "$ARTIFACT_ID" ~/recovered-report.html
+```
+
+The journal defaults to `~/.cache/aaa-memory/evidence.sqlite` and can be redirected
+with `AAA_EVIDENCE_DB`. This feature is experimental. Secret redaction is
+best-effort: do not feed credentials, untrusted environment dumps or private files
+to it. The database contains **redacted evidence**, not lossless originals; the
+raw-content SHA-256 digest is retained to detect source mismatches. The original
+transcript remains with its source system.
+
+Artifacts are preserved under `AAA_ARTIFACT_ROOT` (default
+`~/.cache/aaa-memory/artifacts`). Restoration **never overwrites** an existing
+destination without the explicit `--overwrite` flag, and output directories
+must already exist. Stored artifact bytes are not subject to text redaction:
+register only material you trust the local machine to retain; credential and
+key filenames are rejected by default. Automatic temporary-file capture is
+not yet installed.
+
+See `specs/002-durable-evidence-journal/` for the spec, limitations and tests.
+
 ## License
 
 MIT
