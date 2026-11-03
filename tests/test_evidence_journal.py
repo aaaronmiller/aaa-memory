@@ -1,12 +1,22 @@
 """Regression tests for evidence capture, replay, confidentiality and recall."""
 import hashlib
+import importlib.util
 import json
 import sqlite3
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from aaa_memory.evidence_journal import EvidenceConflict, EvidenceJournal, redact
+# Load the dependency-free journal module without importing the legacy package's
+# eager optional-provider imports (torch, sentence-transformers, etc.).
+module_path = Path(__file__).resolve().parents[1] / "src" / "aaa_memory" / "evidence_journal.py"
+spec = importlib.util.spec_from_file_location("aaa_evidence_journal_under_test", module_path)
+journal_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(journal_module)
+EvidenceConflict = journal_module.EvidenceConflict
+EvidenceJournal = journal_module.EvidenceJournal
+redact = journal_module.redact
 
 
 @pytest.fixture
