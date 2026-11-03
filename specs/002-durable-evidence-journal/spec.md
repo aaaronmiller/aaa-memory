@@ -31,10 +31,16 @@ The journal never executes source content and does not store secrets knowingly. 
 ## Explicitly deferred
 
 - Automatic native hook installation and streaming parsers for every harness.
-- Artifact content-addressed backup and restore.
+- Automatic artifact discovery and retention/garbage-collection policies; the manual content-addressed registry is implemented.
 - Queue leases/dead-letter handling for derived AI processing.
 - Cross-host replication, ACLs, encryption at rest.
 - Quota engine, Dreamtime task orchestrator, learned MEMORILLA readout.
 - User-friendly Web UI and the full analytics catalog.
 
 This increment is not the complete 78-requirement platform rebuild.
+
+## Implemented follow-on additions
+
+- `aaa-memory evidence import-jsonl` opt-in transcript intake: stable source-file/line IDs, unchanged JSON payloads subject to redaction, replay deduplication, explicit invalid-line and conflict counts.
+- `aaa-memory artifact register|list|get|verify|restore`: private content-addressed copies of user-selected local files, SHA-256 verification, explicit non-overwrite recovery and optional source session / evidence reference IDs.
+- Artifact snapshots are not automatically validated against human acceptance criteria, and they do not recover files originally generated exclusively in an inaccessible cloud environment.
