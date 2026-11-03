@@ -12,7 +12,7 @@ Python 3.12 standard library and SQLite FTS5. No new runtime dependency. The jou
 
 ## Acceptance
 
-Run `python -m pytest -q tests/test_evidence_journal.py`. Assert normal search, timeline, repeat replay, rejection of rewritten source IDs, privacy exclusions, user-query safety, concurrent append and stored-content tamper detection. Later benchmark capture throughput, sqlite lock contention and p95 search latency on actual hardware.
+Run `python -m pytest -q tests/test_evidence_journal.py tests/test_capture_import.py tests/test_artifact_registry.py`. Assert normal search, timeline, repeat replay, rejection of rewritten source IDs, privacy exclusions, user-query safety, concurrent append and stored-content tamper detection. Later benchmark capture throughput, sqlite lock contention and p95 search latency on actual hardware.
 
 ## Release gates
 
@@ -20,3 +20,7 @@ Run `python -m pytest -q tests/test_evidence_journal.py`. Assert normal search, 
 - Existing import paths and `aaa-memory` commands continue to operate.
 - No installation scripts modify shell startup files, source archives, or active agent configurations.
 - Review before merge; never automatically ingest credentials or untrusted source directories.
+
+## Follow-on implementation
+
+JSONL importer is explicit and per-file; parsing/ingestion reports bad line numbers, and a source-file/line ID conflict prevents silent rewrite. The artifact registry keeps user-selected generated files under a private SHA-256 blob store, with atomic publishing and checked recovery. Restore operations never overwrite unless explicitly requested. Future adapters must register artifacts at creation time, before temporary workspaces are removed.
