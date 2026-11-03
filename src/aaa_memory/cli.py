@@ -108,6 +108,11 @@ def main():
     timeline = evidence_sub.add_parser("timeline", help="List events for a session")
     timeline.add_argument("session")
     timeline.add_argument("--limit", type=int, default=50)
+    import_session = evidence_sub.add_parser("import-jsonl", help="Import a JSONL session file")
+    import_session.add_argument("file", type=Path)
+    import_session.add_argument("--source", required=True)
+    import_session.add_argument("--session")
+    import_session.add_argument("--project", default="unclassified")
     evidence_sub.add_parser("verify", help="Verify stored content hashes and FTS count")
 
     args = parser.parse_args()
@@ -128,6 +133,12 @@ def main():
                 session_id=args.session, project=args.project,
                 kind=args.kind, content=content,
                 source_path=str(args.file) if args.file else None,
+            )
+        elif args.evidence_command == "import-jsonl":
+            from aaa_memory.capture_import import import_jsonl
+            result = import_jsonl(
+                args.file, source=args.source, session_id=args.session,
+                project=args.project, journal=journal,
             )
         elif args.evidence_command == "search":
             result = journal.search(args.query, limit=args.limit, project=args.project)
