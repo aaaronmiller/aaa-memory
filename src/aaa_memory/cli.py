@@ -115,6 +115,24 @@ def main():
     import_session.add_argument("--project", default="unclassified")
     evidence_sub.add_parser("verify", help="Verify stored content hashes and FTS count")
 
+    artifact = sub.add_parser("artifact", help="Preserve and recover local generated artifacts")
+    artifact_sub = artifact.add_subparsers(dest="artifact_command", required=True)
+    register = artifact_sub.add_parser("register", help="Snapshot a file into private CAS")
+    register.add_argument("path", type=Path)
+    register.add_argument("--project", default="unclassified")
+    register.add_argument("--session")
+    register.add_argument("--evidence-id", type=int)
+    artifacts = artifact_sub.add_parser("list", help="List registered artifacts")
+    artifacts.add_argument("--project")
+    artifacts.add_argument("--limit", type=int, default=30)
+    for subcommand in ("get", "verify"):
+        child = artifact_sub.add_parser(subcommand)
+        child.add_argument("id")
+    restore = artifact_sub.add_parser("restore", help="Restore a registered artifact")
+    restore.add_argument("id")
+    restore.add_argument("destination", type=Path)
+    restore.add_argument("--overwrite", action="store_true", help="Explicitly replace destination")
+
     args = parser.parse_args()
 
     if args.command == "sessions":
@@ -148,6 +166,26 @@ def main():
             result = journal.timeline(args.session, limit=args.limit)
         else:
             result = journal.verify()
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+
+    elif args.command == "artifact":
+        from aaa_memory.artifact_registry import ArtifactRegistry
+        registry = ArtifactRegistry()
+        if args.artifact_command == "register":
+            result = registry.register(
+                args.path, project=args.project, session_id=args.session,
+                evidence_id=args.evidence_id,
+            )
+        elif args.artifact_command == "list":
+            result = registry.list(project=args.project, limit=args.limit)
+        elif args.artifact_command == "get":
+            result = registry.get(args.id)
+        elif args.artifact_command == "verify":
+            result = registry.verify(args.id)
+        else:
+            result = {"restored_path": str(registry.restore(
+                args.id, args.destination, overwrite=args.overwrite,
+            ))}
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
         parser.print_help()
